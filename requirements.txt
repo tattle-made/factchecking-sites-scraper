@@ -1,0 +1,10 @@
+langdetect
+matplotlib
+numpy
+pillow
+requests
+scikit-image
+torch
+torchvision
+tqdm
+ipywidgets
