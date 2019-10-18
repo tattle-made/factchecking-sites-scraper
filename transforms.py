@@ -59,7 +59,7 @@ def imageTransforms(image, type=None, param=0.1):
     # https://pillow.readthedocs.io/en/3.3.x/reference/Image.html
 
     # All ImageFilters: ['BLUR', 'CONTOUR', 'DETAIL', 'EDGE_ENHANCE', 'EDGE_ENHANCE', 'EDGE_ENHANCE_MORE', 'EMBOSS', 'FIND_EDGES', 'SMOOTH', 'SMOOTH_MORE', 'SHARPEN', 'GaussianBlur', 'UnsharpMask', 'RankFilter', 'MedianFilter', 'MinFilter', 'MaxFilter', 'ModeFilter']
-    imagefilters = ['BLUR', 'CONTOUR', 'DETAIL', 'EDGE_ENHANCE', 'EDGE_ENHANCE', 'EDGE_ENHANCE_MORE', 'EMBOSS', 'FIND_EDGES', 'SMOOTH', 'SMOOTH_MORE', 'SHARPEN', 'GaussianBlur', 'UnsharpMask', 'RankFilter', 'MedianFilter', 'MinFilter', 'MaxFilter', 'ModeFilter']
+    imagefilters = ['BLUR', 'CONTOUR', 'DETAIL', 'EDGE_ENHANCE', 'EDGE_ENHANCE', 'EDGE_ENHANCE_MORE', 'EMBOSS', 'FIND_EDGES', 'SMOOTH', 'SMOOTH_MORE', 'SHARPEN', 'GaussianBlur(radius=param)', 'UnsharpMask', 'RankFilter', 'MedianFilter(size=int(param))', 'MinFilter(size=int(param))', 'MaxFilter(size=int(param))', 'ModeFilter(size=int(param))']
 
     # imageops as preprocessing: autocontrast, colorize, equalize
     imageops = ['invert', 'mirror', 'posterize', 'solarize']
@@ -74,17 +74,14 @@ def imageTransforms(image, type=None, param=0.1):
     if type == 'crop':
         bounds = list(image.getbbox())
         # sides = sample(range(2, 4), 2)
-
         bounds[2] = int(bounds[2]*(1-(uniform(0, param))))
         bounds[3] = int(bounds[3]*(1-(uniform(0, param))))
-
         image = image.crop(tuple(bounds))
-        
         return image
     elif type == 'rotate': 
-        angle = sample(range(30, 330, 30), 1)[0]
+        # angle = sample(range(30, 330, 30), 1)[0]
+        angle = param
         image = image.rotate(angle)
-        
         return image
     elif type in imagefilters:
         image = image.filter(eval(f'ImageFilter.{type}'))
@@ -103,4 +100,5 @@ def imageTransforms(image, type=None, param=0.1):
         image = ColorJitter()(image)
         image = Image.fromarray(image)
     else:
+        print(f'{type} transform not found')
         return image

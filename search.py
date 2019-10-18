@@ -6,10 +6,10 @@ from db import mongoDB, sqlDatabase
 from analyzer import doc2vec, img2vec
 
 class ImageSearch:
-    def __init__(self, db_type, db_filename):
+    def __init__(self, db_type, db_filename, threshold=20):
         self.ids = []  # id of images in vec db ~ self.vecs
         self.vecs = []  # holds all features
-        self.thresh = 3  # ?
+        self.thresh = threshold  # ?
         self.db_type = db_type
         self.db_filename = db_filename
         self.build()  # builds db of features for all images in db in self.vec
@@ -44,12 +44,14 @@ class ImageSearch:
 
             db_filename {list(tuple)}: [(doc_id, vec),...]
             """
-            for i, img in self.db_filename:
-                vec = img2vec(img)
-
-                # insert template doc into search set
-                self.ids.append(i)
-                self.vecs.append(vec.tolist())
+            for i, img in tqdm(self.db_filename):
+                try:
+                    vec = img2vec(img)
+                    # insert template doc into search set
+                    self.ids.append(i)
+                    self.vecs.append(vec.tolist())
+                except Exception as e:
+                    print(f'{i}: {e}')
 
         self.vecs = np.array(self.vecs)
 
@@ -58,26 +60,30 @@ class ImageSearch:
         self.vecs = np.vstack((self.vecs, vec))
         print('updated')
 
-    def search(self, vec):
+    def search(self, vec, n=1):
         """
-        returns (ids, dist) of self.vecs closest to input vec
+        returns [(ids, dist),...] of self.vecs closest to input vec
         """
         if type(vec) == list:  # why is it ever a list
             vec = np.array(vec)
         # np.broadcasting search over entire database
         dists = np.linalg.norm(self.vecs - vec, axis=1)
         idx = np.argsort(dists)
-        if dists[idx[0]] < self.thresh:
-            return (self.ids[idx[0]], dists[idx[0]])
-        else:
-            return (None, None)
-
+        
+        ret = []
+        for i in range(n):
+            if dists[idx[i]] < self.thresh:
+                ret.append((self.ids[idx[i]], dists[idx[i]]))
+        if len(ret) == 0:
+            return [(None, None)]
+        else: 
+            return ret
 
 class DocSearch:
-    def __init__(self, db_type='mongo', db_filename=None):
+    def __init__(self, db_type='mongo', db_filename=None, threshold=1):
         self.ids = []
         self.vecs = []
-        self.thresh = 0.6
+        self.thresh = threshold
         self.db_type = db_type
         self.db_filename = db_filename
         self.build()

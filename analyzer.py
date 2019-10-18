@@ -33,9 +33,11 @@ def img2vec(img, type='url'):
 
     if type == 'url':
         image = image_from_url(img)
-        vec = model.extract_feature(image['image'])
+        image = image['image'].convert('RGB') #take care of png(RGBA) issue
+        vec = model.extract_feature(image)
     elif type == 'image':
         # PIL.Image.Image
+        img = img.convert('RGB') #take care of png(RGBA) issue
         vec = model.extract_feature(img)
     else:
         vec = None
