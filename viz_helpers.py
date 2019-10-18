@@ -1,4 +1,5 @@
 from analyzer import img2vec, image_from_url
+import matplotlib.pyplot as plt
 
 def get_db(DATA_SOURCE=None):
     from os import environ
@@ -138,8 +139,6 @@ def get_transform(image, tf, param, imageSearch, doc_id=0, images=None):
     return imageTransformed, ret_image, new_doc_id, new_doc_dist
     
 def plot_transforms(image, imageTransformed, ret_image, new_doc_dist, tf):
-    import matplotlib.pyplot as plt
-
     f, ax = plt.subplots(nrows=3, ncols=1, figsize=(10, 20))
     f.tight_layout()
     
