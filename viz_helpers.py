@@ -187,7 +187,7 @@ def interact_setup(transforms, THRESHOLD, THRESHOLD_MIN, THRESHOLD_MAX, THRESHOL
     
     return transformDropdown, paramSlider, thresholdSlider
 
-def get_similar(image, num_similar, imageSearch):
+def get_similar(image, num_similar, imageSearch, images):
     image_vec = img2vec(image, type='image')
     ret = imageSearch.search(image_vec, n=3)            
 
@@ -200,7 +200,7 @@ def get_similar(image, num_similar, imageSearch):
     
     return ret_image, ret
     
-def plot_similar(image, ret_image, ret, num_similar):
+def plot_similar(image, ret_image, ret, num_similar, thresh=20):
     from math import ceil
 
     nrows = ceil(num_similar/2)
@@ -212,7 +212,7 @@ def plot_similar(image, ret_image, ret, num_similar):
     ax[0, 0].set_title('original image')
     
     num_similar_returned = len(ret_image)
-    print(f'Found {num_similar_returned} similar posts out of {num_similar} requested with threshold {imageSearch.thresh}')
+    print(f'Found {num_similar_returned} similar posts out of {num_similar} requested with threshold {thresh}')
     for x in range(0, nrows):
         for y in range(0, ncols):
             if x == 0 and y == 0:
