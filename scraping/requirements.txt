@@ -1,0 +1,4 @@
+webdriver
+pymongo
+python_dotenv
+tqdm
