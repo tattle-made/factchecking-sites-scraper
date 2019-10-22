@@ -1,8 +1,12 @@
 # reference: https://stackoverflow.com/questions/55431998/how-to-scrap-data-from-website-which-is-populated-using-js
+
 # what is a web driver: https://developer.mozilla.org/en-US/docs/Web/WebDriver
+
 # sharechat images are stored in shadow-root elements: https://blog.revillweb.com/open-vs-closed-shadow-dom-9f3d7427d1af?gi=1a449f44d35f
+
 # xpath does not support shadow-DOM scraping: https://stackoverflow.com/questions/49763626/can-xpath-expressions-access-shadow-root-elements
-# scrapy is able to access hidden elements with its engine: TODO
+
+# public viewing of S3 buckets
 
 from selenium import webdriver
 from time import sleep
@@ -21,7 +25,7 @@ gecko_driver_path = environ['GECKO_DRIVER_PATH']
 SCROLL_PAUSE_TIME = 1
 NOT_A_BOT_SLEEP = 1
 
-def sharechat(num_scrolls=10, lang='hindi', wait_time=3, serviceurl='https://sharechat.com/trending/', download_path='/home/ubuntu/Downloads/'):
+def sharechat(num_scrolls=10, lang='hindi', wait_time=3):
     # scroll into view of button then click: https://stackoverflow.com/questions/44912203/selenium-web-driver-java-element-is-not-clickable-at-point-x-y-other-elem  
     # download a file and skip dialog: https://stackoverflow.com/questions/18439851/how-can-i-download-a-file-on-a-click-event-using-selenium  
     # download file to specified folder: https://stackoverflow.com/questions/25251583/downloading-file-to-specified-location-with-selenium-and-python  
@@ -31,7 +35,8 @@ def sharechat(num_scrolls=10, lang='hindi', wait_time=3, serviceurl='https://sha
     # delete all files
     # save metadata to mongo
     # make it into a daily job?
-    serviceurl = serviceurl + lang
+    
+    serviceurl = 'https://sharechat.com/trending/' + lang
 
     options = webdriver.FirefoxOptions()
     options.add_argument('--headless')
@@ -44,6 +49,7 @@ def sharechat(num_scrolls=10, lang='hindi', wait_time=3, serviceurl='https://sha
     # using firefox gecko driver
     url = serviceurl
     driver = webdriver.Firefox(executable_path=gecko_driver_path, firefox_profile=profile, options=options)
+#     driver.maximize_window() #For maximizing window
     driver.get(url)
     driver.implicitly_wait(wait_time) #gives an implicit wait for n seconds
     while driver.execute_script("return document.readyState") != 'complete':
@@ -66,7 +72,13 @@ def sharechat(num_scrolls=10, lang='hindi', wait_time=3, serviceurl='https://sha
     download_links = driver.find_elements_by_xpath('//button[@aria-label="Click to download"]')    
     
     link = serviceurl
-        
+    download_path = '/home/ubuntu/Downloads/'
+    
+#     all_download_files = listdir(download_path)
+#     all_download_files = [f'{download_path}/{f}' for f in all_download_files]
+#         latest = max(all_download_files, key=getmtime)
+#     last_time = getmtime(latest)
+    
     for i, x in tqdm(enumerate(download_links)):
         try:
             driver.execute_script('arguments[0].scrollIntoView()', x)
@@ -80,6 +92,7 @@ def sharechat(num_scrolls=10, lang='hindi', wait_time=3, serviceurl='https://sha
         
     all_download_files = listdir(download_path)
     all_download_files = [f'{download_path}/{f}' for f in all_download_files]
+#     filepaths = [f for f in all_download_files if getmtime(f) > last_time]
     filepaths = all_download_files
     
     # close driver
@@ -146,21 +159,16 @@ def getPriorSchema(postID=None, domain=None, origURL=None, s3URL=None, possibleL
 
     return doc
 
-def getScrapingCollection():
+def process_img_files():
+    langs = ['Hindi', 'marathi', 'gujarati', 'punjabi', 'telugu', 'malayalam', 'tamil', 'bengali', 'odia', 'kannada', 'assamese', 'bhojpuri', 'haryanvi', 'rajasthani']
+    
     mongo_url = environ['SCRAPING_URL']
     cli = MongoClient(mongo_url)
     db = cli.publicData
     priors = db.priors
 
-    return priors
-
-def process_img_files(region_name='ap-south-1', bucket_name=None):
-    # set bucket_name
-    langs = ['Hindi', 'marathi', 'gujarati', 'punjabi', 'telugu', 'malayalam', 'tamil', 'bengali', 'odia', 'kannada', 'assamese', 'bhojpuri', 'haryanvi', 'rajasthani']
-
-    priors = getScrapingCollection()
-    s3_prefix = f'https://{bucket_name}.s3.{region_name}.amazonaws.com/'
-    bucket = bucket_name
+    s3_prefix = 'https://tattle-priors.s3.ap-south-1.amazonaws.com/'
+    bucket = 'tattle-priors'
     nowDate = date.today().strftime("%B %d, %Y")
     refreshes = 10
     # all_images = []
@@ -168,6 +176,7 @@ def process_img_files(region_name='ap-south-1', bucket_name=None):
     for r in range(refreshes): 
         for lang in langs:
             image_files, link = sharechat(num_scrolls=1, lang=lang)
+            # all_images += image_files
             filenames, contentTypes = image_files_to_s3(image_files, bucket=bucket)
 
             domain=f'sharechat/{lang}'
@@ -180,19 +189,21 @@ def process_img_files(region_name='ap-south-1', bucket_name=None):
                 doc = getPriorSchema(domain=domain, origURL=link, s3URL=s3URL, mediaType=contentTypes[i].split('/')[0], nowDate=nowDate, possibleLangs=possibleLangs)
                 priors.insert_one(doc)
 
-    print('all files metadata stored in db')
+    print('all files metadata stored in ~/data/scraping')
         
-def process_img_urls(bucket_name=None):
+def process_img_urls():
     # https://www.reddit.com/r/languagelearning/
     # r/tamil now allows only text posts
     subreddits = ['hindi', 'tamil', 'urdu', 'punjabi', 'LearnFarsi', 'Kannada', 'BengaliLanguage', 'telugu', 'malayalam', 'gujarati', 'marathi', 'mumbai', 'delhi', 'bangalore', 'india']
     # subreddits = ['hindi']
     # domains = {'r/hindi': ['hindi', 'english'], }
-    # set bucket name
+    # publicData => priors
+    mongo_url = environ['SCRAPING_URL']
+    cli = MongoClient(mongo_url)
+    db = cli.publicData
+    priors = db.priors
 
-    priors = getScrapingCollection()
-
-    s3_prefix = f'https://{bucket_name}.s3.{region_name}.amazonaws.com/'
+    s3_prefix = 'https://tattle-priors.s3.ap-south-1.amazonaws.com/'
 
     for subreddit in subreddits:
         page = f'/r/{subreddit}/top/?t=all'
@@ -210,7 +221,7 @@ def process_img_urls(bucket_name=None):
             doc = getPriorSchema(domain=domain, origURL=post_imgs[i], s3URL=s3URL, mediaType='image')
             priors.insert_one(doc)
     
-    print('all files metadata stored in db')
+    print('all files metadata stored in ~/data/scraping')
 
 def aws_connection():
     import boto3
