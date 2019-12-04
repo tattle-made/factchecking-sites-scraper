@@ -33,7 +33,7 @@ Few sites (such as quint) render most content dynamically on the client, these r
 
 ### installation
 Install all packages: ``` pip install -r requirements.txt ```  
-Geckodriver support:  
-- download [geckodriver](https://github.com/mozilla/geckodriver/releases)  
-- install firefox: ``` sudo apt-get install xvfb firefox ```  
+**Geckodriver support**:  
+download [geckodriver](https://github.com/mozilla/geckodriver/releases)  
+install firefox: ``` sudo apt-get install xvfb firefox ```  
 Lastly fill in details in .env_template and rename as .env
