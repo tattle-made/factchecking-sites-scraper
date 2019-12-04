@@ -30,3 +30,9 @@ desired_div = tree.xpath('//div')
 These divs can then be organized into jsons and dumped to a database (mongodb).
 
 Few sites (such as quint) render most content dynamically on the client, these require a more involved approach with selenium. Selenium is also used with social media sites to scroll through and load more posts.
+
+### installation
+Install all packages: ``` pip install -r requirements.txt ```  
+Geckodriver support:  
+- download [geckodriver](https://github.com/mozilla/geckodriver/releases)  
+- install firefox: ``` sudo apt-get install xvfb firefox ```  
