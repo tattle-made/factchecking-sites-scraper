@@ -36,3 +36,4 @@ Install all packages: ``` pip install -r requirements.txt ```
 Geckodriver support:  
 - download [geckodriver](https://github.com/mozilla/geckodriver/releases)  
 - install firefox: ``` sudo apt-get install xvfb firefox ```  
+Lastly fill in details in .env_template and rename as .env
