@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 gecko_driver_path = environ['GECKO_DRIVER_PATH']
+download_path = environ['DOWNLOAD_PATH']
 SCROLL_PAUSE_TIME = 1
 NOT_A_BOT_SLEEP = 1
 
@@ -121,6 +122,7 @@ class Scraper():
         #print(download_status)
         #print(f'downloaded files: {len(all_download_files)} \n download links: {len(download_links)} \n tags: {len(temp_title_tag)} \n div stats: {len(temp_div)}')
         i = 0
+        #print(all_download_files)
         for f in range(len(download_links)):
             if download_status[f] == 'passed':
                 self.posts.append({
@@ -135,6 +137,7 @@ class Scraper():
     def close_driver(self):
         if self.driver:
             self.driver.close()
+            self.driver.quit()
             
 def getSharechatSchema(postID=None, domain=None, origURL=None, s3URL=None, mediaType=None, content=None, 
                        scrapeDate=None, scrapeTime=None, timeZone=None, postDate=None, postTime=None, 
@@ -231,7 +234,7 @@ def process_img_files(lang=None):
     print("scraper loaded...\n")
     scraper.get_url()
     
-    scraper.download_path = '/home/ubuntu/Downloads'  # EDIT
+    scraper.download_path = download_path
     scraper.click_download_links_sharechat()
     filenames = [x['filename'] for x in scraper.posts]
     filepaths = [f'{scraper.download_path}/{x}' for x in filenames]
