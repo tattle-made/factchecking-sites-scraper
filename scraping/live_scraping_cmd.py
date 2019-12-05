@@ -35,22 +35,22 @@ sites = {"altnews.in": {"url": "https://www.altnews.in",
          "boomlive.in": {"url": "https://www.boomlive.in/fake-news",
                          "langs": ["english"],
                          "domain": "boomlive.in",
-                         "body_div": "div[@class='pf-content']",
-                         "img_link": "data-src",
+                         "body_div": 'div[@class="story"]',
+                         "img_link": "src",
                          "getLinks": get_historical_links_boomlive,
                          "getPost": get_post_boomlive},
          "hindi.boomlive.in": {"url": "https://hindi.boomlive.in/fake-news",
                                "langs": ["hindi"],
                                "domain": "hindi.boomlive.in",
-                               "body_div": "div[@class='pf-content']",
+                               "body_div": 'div[@class="story"]',
                                "img_link": "src",
                                "getLinks": get_historical_links_boomlive,
                                "getPost": get_post_boomlive},
          "bangla.boomlive.in": {"url": "https://bangla.boomlive.in/fake-news",
                                 "langs": ["bengali"],
                                 "domain": "bangla.boomlive.in",
-                                "body_div": "section[@id='mvp=content-main']",
-                                "img_link": "data-src",
+                                "body_div": 'div[@class="story"]',
+                                "img_link": "src",
                                 "getLinks": get_historical_links_boomlive,
                                 "getPost": get_post_boomlive},
          "factly.in": {"url": "https://factly.in/category/fake-news",
@@ -137,7 +137,7 @@ getLinks = s.get('getLinks', None)
 getPost = s.get('getPost', None)
 
 # get links
-links, _ = get_live_links(getLinks=getLinks, url=url, db=db)
+links, _ = get_live_links(getLinks=getLinks, url=url, db=db, domain=domain)
 with open(csvLog, 'a') as f:
     f.write(f'\n{url},{domain},{len(links)}')
 
