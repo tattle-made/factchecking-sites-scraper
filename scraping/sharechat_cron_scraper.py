@@ -283,8 +283,10 @@ if __name__ == "__main__":
     for i in range(10):
         process_img_files(lang='hindi')
         kill_processes('geckodriver')
+        kill_processes('firefox')
         sleep(60)
     for i in range(10):
         process_img_files(lang='gujarati')
         kill_processes('geckodriver')
+        kill_processes('firefox')
         sleep(60)
