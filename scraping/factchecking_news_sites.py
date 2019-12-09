@@ -338,7 +338,10 @@ def get_post_links_from_page_boomlive(url=None, domain=None):
     tree= get_tree(url)
     all_links = tree.xpath('//h2/a')
     links = []
-    prefix = f'https://www.{domain}'
+    if domain == 'boomlive.in':
+        prefix = f'https://www.{domain}'
+    else:
+        prefix = f'https://{domain}'
     for i, x in enumerate(all_links):
         curLink = x.get('href')
         if 'boomlive' not in curLink:
