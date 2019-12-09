@@ -115,9 +115,8 @@ sites = {"altnews.in": {"url": "https://www.altnews.in",
         }
           
 # run live
-for _,s in sites.items():
+for _ ,s in sites.items():
     print(_)
-    #s = sites['boomlive.in']
     url = s.get('url', None)
     langs = s.get('langs', None)
     domain = s.get('domain', None)
@@ -127,14 +126,14 @@ for _,s in sites.items():
     getLinks = s.get('getLinks', None)
     getPost = s.get('getPost', None)
 
-# get links
-links, _ = get_live_links(getLinks=getLinks, url=url, db=db, domain=domain)
-with open(csvLog, 'a') as f:
-    f.write(f'\n{url},{domain},{len(links)}')
+    # get links
+    links, _ = get_live_links(getLinks=getLinks, url=url, db=db, domain=domain)
+    with open(csvLog, 'a') as f:
+        f.write(f'\n{url},{domain},{len(links)}')
 
-scraping_site_links(getPost=getPost, links=links, db=db, langs=langs, 
-                    domain=domain, csvErr=csvErr, body_div=body_div, 
-                    header_div=header_div, img_link=img_link)
+    scraping_site_links(getPost=getPost, links=links, db=db, langs=langs, 
+                        domain=domain, csvErr=csvErr, body_div=body_div, 
+                        header_div=header_div, img_link=img_link)
 
 ###############################################################
 # upload csv
