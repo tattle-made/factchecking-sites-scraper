@@ -77,6 +77,8 @@ def get_tree(url):
         html = requests.get(url, headers=headers)
     except Exception as e:
         print(f'failed request: {e}')
+    if 'boomlive' in url:
+        html.encoding = 'utf-8'
     #tree = fromstring(html.content)
     tree = fromstring(html.text)
     return tree
