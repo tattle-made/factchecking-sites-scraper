@@ -77,7 +77,8 @@ def get_tree(url):
         html = requests.get(url, headers=headers)
     except Exception as e:
         print(f'failed request: {e}')
-    tree = fromstring(html.content)
+    #tree = fromstring(html.content)
+    tree = fromstring(html.text)
     return tree
 
 # site-agnostic scraping functions
