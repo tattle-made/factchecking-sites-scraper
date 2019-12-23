@@ -1018,7 +1018,7 @@ def dump_links_indiatoday():
     # loop through all links
     links = []
 
-    for page_num in tqdm(range(0, 14), desc="links: "):
+    for page_num in tqdm(range(0, 50), desc="links: "):
         page_url = f'https://www.indiatoday.in/fact-check?page={page_num}&view_type=list'
         sleep(1)
         tree = get_tree(page_url)
