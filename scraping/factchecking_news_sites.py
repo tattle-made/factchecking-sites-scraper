@@ -103,7 +103,7 @@ def scraping_site_links(getPost=None, links=None, db=None, langs=[], domain=None
                 else:
                     post = getPost(l, langs=langs, domain=domain, body_div=body_div, img_link=img_link, header_div=header_div)
                 db.insert_one(post)        
-                sleep(randint(10, 20))
+                sleep(randint(1, 5))
         except Exception as e:
                 if csvErr:
                     with open(csvErr, 'a') as f:
@@ -118,6 +118,10 @@ def get_live_links(getLinks=None, url=None, db=None, domain=None):
 
     while newLink:    
         links, _ = getLinks(url=url, NUM_PAGES=[page_num], domain=domain)
+        if len(links) == 0:
+            newLink = False
+            print('No/No more links found')                
+            continue
         for l in links:
             if db.count_documents({'postURL': l}):
                 newLink = False
@@ -356,11 +360,12 @@ def get_post_links_from_page_boomlive(url=None, domain=None):
 def get_historical_links_boomlive(url=None, NUM_PAGES=[1], domain=None):
     # get story links based on url and page range
     links = []
-    for page in tqdm(NUM_PAGES, desc="pages: "):
+    for page in NUM_PAGES:
         page_url = f'{url}/page/{page}'
         curLinks = get_post_links_from_page_boomlive(url=page_url, domain=domain)
         links += curLinks
-        sleep(randint(5, 15))
+        print(f'{page}: {len(links)}')
+        sleep(randint(1, 5))
 
     return links, NUM_PAGES
 
@@ -810,7 +815,15 @@ def dump_links_vishvasnews(lang):
         url = 'https://www.vishvasnews.com/'
     else:
         url = f'https://www.vishvasnews.com/{lang}'
-    tree = get_tree(page_url)
+    tree = get_tree(url)
+
+    # selenium scrape
+    options = webdriver.FirefoxOptions()
+    options.add_argument('--headless')
+                         
+    # profile
+    profile = webdriver.FirefoxProfile()
+    profile.set_preference('browser.download.manager.showWhenStarting', False)
 
     # using firefox gecko driver
     driver = webdriver.Firefox(executable_path=gecko_driver_path, firefox_profile=profile, options=options)
