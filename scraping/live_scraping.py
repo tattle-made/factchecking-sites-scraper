@@ -5,7 +5,7 @@ from factchecking_news_sites import get_db, get_live_links, scraping_site_links,
 from factchecking_news_sites import get_post_altnews, get_historical_links_altnews, get_post_boomlive, get_historical_links_boomlive
 from factchecking_news_sites import get_post_factly, get_historical_links_factly, get_post_indiatoday, get_historical_links_indiatoday
 from factchecking_news_sites import get_post_vishvasnews, get_historical_links_vishvasnews, get_post_quint, get_historical_links_quint
-from factchecking_news_sites import get_post_digiteye, get_historical_links_digiteye, get_historical_links_digiteye_kannada
+from factchecking_news_sites import get_post_digiteye, get_historical_links_digiteye, get_post_digiteye_kannada
 
 load_dotenv()
 
