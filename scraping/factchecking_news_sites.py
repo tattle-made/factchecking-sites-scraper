@@ -17,7 +17,7 @@ load_dotenv()
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 
           'November', 'December']
 
-#gecko_driver_path = environ['GECKO_DRIVER_PATH']
+gecko_driver_path = environ['GECKO_DRIVER_PATH']
 
 def get_db():
     # setup db
