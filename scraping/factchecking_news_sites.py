@@ -17,7 +17,7 @@ load_dotenv()
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 
           'November', 'December']
 
-gecko_driver_path = environ['GECKO_DRIVER_PATH']
+#gecko_driver_path = environ['GECKO_DRIVER_PATH']
 
 def get_db():
     # setup db
@@ -132,6 +132,157 @@ def get_live_links(getLinks=None, url=None, db=None, domain=None):
         page_num += 1
         
     return all_links, page_num
+
+
+# digiteye kannada specific helper functions
+
+def get_metadata_digiteye_kannada(tree):
+    headline = tree.xpath('//span[@itemprop="name"]')[0].text
+    author = tree.xpath('//span[@class="post-meta-author"]//a')
+    author_name = author[0].text
+    author_link = author[0].get('href')
+    metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
+    
+    return metadata
+
+def get_post_digiteye_kannada(page_url, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
+    # from a page url, get a post dict ready for upload to mongo
+    tree = get_tree(page_url)
+    metadata = get_metadata_digiteye_kannada(tree)
+    metadata['date_updated'] = page_url[28:38]
+    body_elements = tree.xpath('//article')
+    content = get_content_digiteye(tree, body_elements)
+
+    # fields
+    postID = uuid.uuid4().hex
+    domain = domain
+    # uniform date format
+    nowDate = date.today().strftime("%B %d, %Y")
+    date_updated = parse(metadata['date_updated']).strftime("%B %d, %Y")
+
+    docs = []
+    for k,v in content.items():
+        if not v:  # empty list
+            continue
+        if k == 'text':
+            content = '\n'.join(v)
+            origURL = page_url
+            doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate)
+            docs.append(doc)
+        else:
+            content = None
+            for url in v:
+                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
+                                   content=content, nowDate=nowDate)
+                docs.append(doc)
+                
+    post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
+                          date_accessed=nowDate, date_updated=date_updated, docs=docs)
+    
+    return post
+
+
+# digiteye eng and telugu specific helper functions
+def get_post_links_from_page_digiteye(url='https://digiteye.in'):
+    tree= get_tree(url)
+    all_links = tree.xpath('//a[@class="more-link"]')
+    links = []
+    for i, x in enumerate(all_links):
+        #print(f'{i}: {x.get("href")}')
+        links.append(x.get('href'))
+    
+    return links
+
+def get_metadata_digiteye(tree):
+    headline = tree.xpath('//span[@itemprop="name"]')[0].text
+    datestr = tree.xpath('//span[@class="tie-date"]')[0].text
+    author = tree.xpath('//span[@class="post-meta-author"]//a')
+    author_name = author[0].text
+    author_link = author[0].get('href')
+    metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
+    
+    return metadata
+
+def get_content_digiteye(tree, body_elements):
+    # return body content in a dict from page tree
+    content = {'text': [], 'video': [], 'image': [], 'tweet': []}
+
+    video = body_elements.xpath('//iframe')
+    if video: 
+        for v in video:
+            content['video'].append(v.get('src'))
+
+    for i, x in enumerate(body_elements):        
+        text_content = x.text_content()
+        if text_content:
+            content['text'].append(" "+text_content)    
+
+        image = x.xpath('img')
+        if image:
+            for im in image:
+                content['image'].append(im.get('src'))
+        
+    return content
+
+def get_post_digiteye(page_url, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
+    # from a page url, get a post dict ready for upload to mongo
+    tree = get_tree(page_url)
+    metadata = get_metadata_digiteye(tree)
+    body_elements = tree.xpath('//article')
+    content = get_content_digiteye(tree, body_elements)
+
+    # fields
+    postID = uuid.uuid4().hex
+    domain = domain
+    # uniform date format
+    nowDate = date.today().strftime("%B %d, %Y")
+    date_updated = parse(metadata['date_updated']).strftime("%B %d, %Y")
+    author = {'name': metadata['author'], 'link': metadata['author_link']}
+
+    docs = []
+    for k,v in content.items():
+        if not v:  # empty list
+            continue
+        if k == 'text':
+            content = '\n'.join(v)
+            origURL = page_url
+            doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate)
+            docs.append(doc)
+        else:
+            content = None
+            for url in v:
+                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
+                                   content=content, nowDate=nowDate)
+                docs.append(doc)
+                
+    post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
+                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+    
+    return post
+
+
+
+def get_historical_links_digiteye(url='https://digiteye.in', NUM_PAGES=[1], ifSleep=True, domain=None):
+    links = []
+    for page in tqdm(NUM_PAGES, desc="pages: "):
+        page_url = f'{url}/page/{page}'
+        curLinks = get_post_links_from_page_digiteye(page_url)
+        links += curLinks
+        if ifSleep:
+            sleep(randint(10, 20))
+
+    return links, NUM_PAGES
+
+
+
+
+
+
+
+
+
 
 # altnews specific helper functions
 def get_post_links_from_page_altnews(url='https://www.altnews.in'):
@@ -1142,5 +1293,6 @@ if __name__ == '__main__':
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(10, 40))
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(40, 70))
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(70, 101))
+    print(get_historical_links_digiteye("https://digiteye.in/kannada/"))
 
     pass

@@ -5,6 +5,7 @@ from factchecking_news_sites import get_db, get_live_links, scraping_site_links,
 from factchecking_news_sites import get_post_altnews, get_historical_links_altnews, get_post_boomlive, get_historical_links_boomlive
 from factchecking_news_sites import get_post_factly, get_historical_links_factly, get_post_indiatoday, get_historical_links_indiatoday
 from factchecking_news_sites import get_post_vishvasnews, get_historical_links_vishvasnews, get_post_quint, get_historical_links_quint
+from factchecking_news_sites import get_post_digiteye, get_historical_links_digiteye, get_historical_links_digiteye_kannada
 
 load_dotenv()
 
@@ -111,7 +112,26 @@ sites = {"altnews.in": {"url": "https://www.altnews.in",
                    "langs": ["english"],
                    "domain": "thequint.com",
                    "getLinks": get_historical_links_quint,
-                   "getPost": get_post_quint}
+                   "getPost": get_post_quint},
+
+          "digiteye.in": {"url": "https://digiteye.in",
+                   "langs": ["english"],
+                   "domain": "digiteye.in",
+                   "getLinks": get_historical_links_digiteye,
+                   "getPost": get_post_digiteye},
+           
+           "digiteye.in/kannada": {"url": "https://digiteye.in/kannada",
+                   "langs": ["kannada"],
+                   "domain": "digiteye.in/kannada",
+                   "getLinks": get_historical_links_digiteye,
+                   "getPost": get_post_digiteye_kannada},
+           	
+           	"digiteye.in/telugu": {"url": "https://digiteye.in/telugu",
+                   "langs": ["telugu"],
+                   "domain": "digiteye.in/telugu",
+                   "getLinks": get_historical_links_digiteye,
+                   "getPost": get_post_digiteye},
+           	
         }
           
 # run live

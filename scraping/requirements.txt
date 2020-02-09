@@ -4,3 +4,5 @@ boto3
 python_dotenv
 tqdm
 psutil
+lxml
+numpy
