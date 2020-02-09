@@ -17,7 +17,7 @@ load_dotenv()
 months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 
           'November', 'December']
 
-#gecko_driver_path = environ['GECKO_DRIVER_PATH']
+gecko_driver_path = environ['GECKO_DRIVER_PATH']
 
 def get_db():
     # setup db
@@ -1293,6 +1293,5 @@ if __name__ == '__main__':
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(10, 40))
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(40, 70))
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(70, 101))
-    print(get_historical_links_digiteye("https://digiteye.in/kannada/"))
 
     pass
