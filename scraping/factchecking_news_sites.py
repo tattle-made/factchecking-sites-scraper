@@ -130,7 +130,7 @@ def get_live_links(getLinks=None, url=None, db=None, domain=None):
                 
         #all_links += links
         page_num += 1
-        
+    all_links.reverse()
     return all_links, page_num
 
 
@@ -138,10 +138,7 @@ def get_live_links(getLinks=None, url=None, db=None, domain=None):
 
 def get_metadata_digiteye_kannada(tree):
     headline = tree.xpath('//span[@itemprop="name"]')[0].text
-    author = tree.xpath('//span[@class="post-meta-author"]//a')
-    author_name = author[0].text
-    author_link = author[0].get('href')
-    metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
+    metadata = {'headline': headline, 'author': None, 'author_link': None}
     
     return metadata
 
@@ -150,7 +147,7 @@ def get_post_digiteye_kannada(page_url, langs=[], domain=None, body_div=None, im
     tree = get_tree(page_url)
     metadata = get_metadata_digiteye_kannada(tree)
     metadata['date_updated'] = page_url[28:38]
-    body_elements = tree.xpath('//article')
+    body_elements = tree.xpath('//article')[0]
     content = get_content_digiteye(tree, body_elements)
 
     # fields
@@ -213,11 +210,11 @@ def get_content_digiteye(tree, body_elements):
         for v in video:
             content['video'].append(v.get('src'))
 
-    for i, x in enumerate(body_elements):        
-        text_content = x.text_content()
+    text_content = body_elements.text_content()
         if text_content:
-            content['text'].append(" "+text_content)    
+            content['text'].append(text_content)    
 
+    for i, x in enumerate(body_elements):        
         image = x.xpath('img')
         if image:
             for im in image:
@@ -229,7 +226,7 @@ def get_post_digiteye(page_url, langs=[], domain=None, body_div=None, img_link=N
     # from a page url, get a post dict ready for upload to mongo
     tree = get_tree(page_url)
     metadata = get_metadata_digiteye(tree)
-    body_elements = tree.xpath('//article')
+    body_elements = tree.xpath('//article')[0]
     content = get_content_digiteye(tree, body_elements)
 
     # fields
