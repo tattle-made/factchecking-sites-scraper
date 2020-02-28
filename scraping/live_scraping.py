@@ -6,6 +6,7 @@ from factchecking_news_sites import get_post_altnews, get_historical_links_altne
 from factchecking_news_sites import get_post_factly, get_historical_links_factly, get_post_indiatoday, get_historical_links_indiatoday
 from factchecking_news_sites import get_post_vishvasnews, get_historical_links_vishvasnews, get_post_quint, get_historical_links_quint
 from factchecking_news_sites import get_post_digiteye, get_historical_links_digiteye, get_post_digiteye_kannada
+from factchecking_news_sites import get_historical_links_factcrescendo,get_post_factcrescendo,get_historical_links_factchecker,get_post_factchecker,get_historical_links_newsmobile,get_post_newsmobile,get_historical_links_afp,get_post_afp
 
 load_dotenv()
 
@@ -126,12 +127,36 @@ sites = {"altnews.in": {"url": "https://www.altnews.in",
                    "getLinks": get_historical_links_digiteye,
                    "getPost": get_post_digiteye_kannada},
            	
-           	"digiteye.in/telugu": {"url": "https://digiteye.in/telugu",
+            "digiteye.in/telugu": {"url": "https://digiteye.in/telugu",
                    "langs": ["telugu"],
                    "domain": "digiteye.in/telugu",
                    "getLinks": get_historical_links_digiteye,
                    "getPost": get_post_digiteye},
-           	
+            
+            "factcrescendo.com": {"url": "https://www.factcrescendo.com",
+                   "langs": ["hindi"],
+                   "domain": "factcrescendo.com",
+                   "getLinks": get_historical_links_factcrescendo,
+                   "getPost": get_post_factcrescendo},
+
+            "factchecker.in": {"url": "https://www.factchecker.in",
+                   "langs": ["english"],
+                   "domain": "factchecker.in",
+                   "getLinks": get_historical_links_factchecker,
+                   "getPost": get_post_factchecker},
+
+            "newsmobile.in": {"url": "https://newsmobile.in/articles/category/nm-fact-checker",
+                   "langs": ["english"],
+                   "domain": "newsmobile.in",
+                   "getLinks": get_historical_links_newsmobile,
+                   "getPost": get_post_newsmobile},
+            
+            "factcheck.afp.com/afp-india": {"url": "https://factcheck.afp.com/afp-india",
+                   "langs": ["english"],
+                   "domain": "factcheck.afp.com/afp-india",
+                   "getLinks": get_historical_links_afp,
+                   "getPost": get_post_afp},
+            
         }
           
 # run live
