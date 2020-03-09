@@ -567,7 +567,8 @@ def get_content_quint(driver):
         content['video'].append(v.get_attribute('src'))
         
     # images
-    images = driver.find_elements_by_xpath('//div[@class="story-card"]//div/figure/img')
+    # images = driver.find_elements_by_xpath('//div[@class="story-card"]//div/figure/img')
+    images = driver.find_elements_by_xpath('//div[@class="story-article__content__element--image"]//figure/img')
     for i in images[1:]:
         content['image'].append(i.get_attribute('src'))
         
@@ -578,6 +579,24 @@ def get_content_quint(driver):
             content['text'].append(text)    
         
     return content
+
+def get_content_quint_test(driver):    
+    content = {'text': [], 'video': [], 'image': [], 'tweet': [], 'facebook': [], 'instagram': []}
+        
+    # images
+    # images = driver.find_elements_by_xpath('//div[@class="story-card"]//div/figure/img')
+    images = driver.find_elements_by_xpath('//div[@class="story-article__content__element--image"]/figure/img')
+    for i in images[1:]:
+        print('-----')
+        print (i.tag_name)
+        print(i.get_attribute('src'))
+        print(i.get_attribute('data-src'))
+        print(i.get_attribute('alt'))
+        print(i.get_attribute('id'))
+        content['image'].append(i.get_attribute('src'))
+        
+    return content
+
 
 def get_post_quint(page_url, driver=None, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
     # from a page url, get a post dict ready for upload to mongo
