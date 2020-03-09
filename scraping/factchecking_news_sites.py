@@ -586,11 +586,20 @@ def get_content_quint_test(driver):
     # images
     # images = driver.find_elements_by_xpath('//div[@class="story-card"]//div/figure/img')
     images = driver.find_elements_by_xpath('//div[@class="story-article__content__element--image"]/figure/img')
-    for i in images[1:]:
+    
+   
+    for i in images[1:4]:
+
         print('-----')
+
+        # Print attributes:
+        attrs = driver.execute_script('var items = {}; for (index = 0; index < arguments[0].attributes.length; ++index) { items[arguments[0].attributes[index].name] = arguments[0].attributes[index].value }; return items;', i)
+        print(attrs)
+       
         print (i.tag_name)
         print(i.get_attribute('src'))
         print(i.get_attribute('data-src'))
+        print(i.get_attribute('alt src'))
         print(i.get_attribute('alt'))
         print(i.get_attribute('id'))
         content['image'].append(i.get_attribute('src'))
