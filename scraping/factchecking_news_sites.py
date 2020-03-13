@@ -25,7 +25,7 @@ def get_db():
     # replace with your own db
     mongo_url = environ['SCRAPING_URL']
     cli = MongoClient(mongo_url)
-    db = cli.publicData.stories
+    db = cli.factcheck_sites.stories
     
     return db
 
@@ -1019,9 +1019,10 @@ def get_content_quint(driver):
         content['video'].append(v.get_attribute('src'))
         
     # images
-    images = driver.find_elements_by_xpath('//div[@class="story-card"]//div/figure/img')
-    for i in images[1:]:
-        content['image'].append(i.get_attribute('src'))
+    # images = driver.find_elements_by_xpath('//div[@class="story-card"]//div/figure/img')
+    images = driver.find_elements_by_xpath('//div[@class="story-article__content__element--image"]/figure/img')
+    for i in images:
+        content['image'].append('https:'+i.get_attribute('data-src'))
         
     body_elements = driver.find_elements_by_xpath('//div[@class="story-card"]//p')
     for i, x in enumerate(body_elements):        
@@ -1031,6 +1032,28 @@ def get_content_quint(driver):
         
     return content
 
+def get_content_quint_test(driver):    
+    
+    # images
+    # images = driver.find_elements_by_xpath('//div[@class="story-card"]//div/figure/img')
+    images = driver.find_elements_by_xpath('//div[@class="story-article__content__element--image"]/figure/img')
+    content = {'text': [], 'video': [], 'image': [], 'tweet': [], 'facebook': [], 'instagram': []}
+   
+    for i in images:
+
+        print('-----')
+
+        #Print attributes:
+        attrs = driver.execute_script('var items = {}; for (index = 0; index < arguments[0].attributes.length; ++index) { items[arguments[0].attributes[index].name] = arguments[0].attributes[index].value }; return items;', i)
+        print(attrs)
+       
+        print (i.tag_name)
+        print('https:'+i.get_attribute('data-src'))
+        #print(i.get_attribute('alt src'))
+        content['image'].append('https:'+i.get_attribute('data-src'))
+        
+    return content 
+    
 def get_post_quint(page_url, driver=None, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
     # from a page url, get a post dict ready for upload to mongo
 
