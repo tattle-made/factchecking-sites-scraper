@@ -6,11 +6,12 @@ from os import environ
 import uuid
 from time import sleep
 from pymongo import MongoClient
-from datetime import date
+from datetime import date, datetime
 from dateutil.parser import parse
 import requests
 from dotenv import load_dotenv
 from selenium import webdriver
+from urllib.parse import urljoin
 load_dotenv()
 
 # necessary params?
@@ -73,10 +74,13 @@ def get_tree(url):
     # TODO: https://www.peterbe.com/plog/best-practice-with-retries-with-requests
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36', 
               'Content-Type': 'text/html'}
-    try:
-        html = requests.get(url, headers=headers)
-    except Exception as e:
-        print(f'failed request: {e}')
+    html = None
+    while True:
+        try:
+            html = requests.get(url, headers=headers)
+            break
+        except Exception as e:
+            print(f'failed request: {e}')
     if 'boomlive' in url:
         html.encoding = 'utf-8'
     #tree = fromstring(html.content)
@@ -116,11 +120,11 @@ def get_live_links(getLinks=None, url=None, db=None, domain=None):
     page_num = 1
     all_links = []
 
-    while newLink:    
+    while newLink:
         links, _ = getLinks(url=url, NUM_PAGES=[page_num], domain=domain)
         if len(links) == 0:
             newLink = False
-            print('No/No more links found')                
+            print('No/No more links found')
             continue
         for l in links:
             if db.count_documents({'postURL': l}):
@@ -130,8 +134,456 @@ def get_live_links(getLinks=None, url=None, db=None, domain=None):
                 
         #all_links += links
         page_num += 1
-        
+    all_links.reverse()
     return all_links, page_num
+
+
+def get_content_universal(tree, body_elements):
+    # return body content in a dict from page tree
+    content = {'text': [], 'video': [], 'image': [], 'tweet': []}
+
+    video = body_elements.xpath('//iframe')
+    if video: 
+        for v in video:
+            content['video'].append(v.get('src'))
+
+    text_content = body_elements.text_content()
+    if text_content:
+        content['text'].append(text_content)
+
+    for i, x in enumerate(body_elements):        
+        image = x.xpath('img')
+        if image:
+            for im in image:
+                content['image'].append(im.get('src'))
+        
+    return content
+
+
+# factcrescendo specific helper function
+
+def get_historical_links_factcrescendo(url='https://www.factcrescendo.com', NUM_PAGES=[1], ifSleep=True, domain=None):
+    links = []
+    for page in tqdm(NUM_PAGES, desc="pages: "):
+        page_url = f'{url}/archives/page/{page}'
+        curLinks = get_post_links_from_page_factcrescendo(page_url)
+        links += curLinks
+        if ifSleep:
+            sleep(randint(10, 20))
+    return links, NUM_PAGES
+
+def get_post_links_from_page_factcrescendo(url='https://www.factcrescendo.com'):
+    tree= get_tree(url)
+    all_links = tree.xpath('//span[@class="np-archive-more"]//a')
+    links = []
+    for i, x in enumerate(all_links):
+        links.append(x.get('href'))
+    return links
+
+def get_post_factcrescendo(page_url, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
+    # from a page url, get a post dict ready for upload to mongo
+    tree = get_tree(page_url)
+    metadata = get_metadata_factcrescendo(tree)
+    body_elements = tree.xpath('//div[@class="entry-content"]')[0]
+    content = get_content_universal(tree, body_elements)
+
+    # fields
+    postID = uuid.uuid4().hex
+    domain = domain
+    # uniform date format
+    nowDate = date.today().strftime("%B %d, %Y")
+    date_updated = metadata['date_updated']
+    author = {'name': metadata['author'], 'link': metadata['author_link']}
+
+    docs = []
+    for k,v in content.items():
+        if not v:  # empty list
+            continue
+        if k == 'text':
+            content = '\n'.join(v)
+            origURL = page_url
+            doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate)
+            docs.append(doc)
+        else:
+            content = None
+            for url in v:
+                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
+                                   content=content, nowDate=nowDate)
+                docs.append(doc)
+                
+    post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
+                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+    return post
+
+
+def get_metadata_factcrescendo(tree):
+    headline = tree.xpath('//h1[@class="entry-title"]')[0].text
+    datestr = tree.xpath('//time[contains(@class, "entry-date")]')[0].text
+    author = tree.xpath("//a[contains(@class, 'url') and contains(@class, 'fn')]")
+    author_name = author[0].text
+    author_link = author[0].get('href')
+    metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
+    
+    return metadata
+
+
+
+# factchecker specific helper function
+
+def get_historical_links_factchecker(url='https://www.factchecker.in', NUM_PAGES=[1], ifSleep=True, domain=None):
+    links = []
+    for page in tqdm(NUM_PAGES, desc="pages: "):
+        page_url = f'{url}/page/{page}'
+        curLinks = get_post_links_from_page_factchecker(page_url)
+        links += curLinks
+        if ifSleep:
+            sleep(randint(10, 20))
+    return links, NUM_PAGES
+
+def get_post_links_from_page_factchecker(url='https://www.factchecker.in'):
+    tree= get_tree(url)
+    all_links = tree.xpath('//h2[@class="post-title"]//a')
+    links = []
+    for i, x in enumerate(all_links):
+        links.append(x.get('href'))
+    return links
+
+def get_post_factchecker(page_url, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
+    # from a page url, get a post dict ready for upload to mongo
+    tree = get_tree(page_url)
+    metadata = get_metadata_factchecker(tree)
+    body_elements = tree.xpath('//div[@class="entry-content"]')[0]
+    content = get_content_universal(tree, body_elements)
+
+    # fields
+    postID = uuid.uuid4().hex
+    domain = domain
+    # uniform date format
+    nowDate = date.today().strftime("%B %d, %Y")
+    date_updated = metadata['date_updated']
+    author = {'name': metadata['author'], 'link': metadata['author_link']}
+
+    docs = []
+    for k,v in content.items():
+        if not v:  # empty list
+            continue
+        if k == 'text':
+            content = '\n'.join(v)
+            origURL = page_url
+            doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate)
+            docs.append(doc)
+        else:
+            content = None
+            for url in v:
+                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
+                                   content=content, nowDate=nowDate)
+                docs.append(doc)
+                
+    post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
+                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+    return post
+
+
+def get_metadata_factchecker(tree):
+    headline = tree.xpath('//h1[@class="post-title"]')[0].text
+    datestr = tree.xpath('//p[@class="post-byline"]/text()')[-1].strip()
+    author = tree.xpath("//a[contains(@class, 'url') and contains(@class, 'author')]")
+    author_name = author[0].text
+    author_link = author[0].get('href')
+    metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
+    return metadata
+
+    
+
+
+
+
+
+# newsmobile specific helper function
+
+def get_historical_links_newsmobile(url='https://newsmobile.in/articles/category/nm-fact-checker', NUM_PAGES=[1], ifSleep=True, domain=None):
+    links = []
+    for page in tqdm(NUM_PAGES, desc="pages: "):
+        page_url = f'{url}/page/{page}'
+        curLinks = get_post_links_from_page_newsmobile(page_url)
+        links += curLinks
+        if ifSleep:
+            sleep(randint(10, 20))
+    return links, NUM_PAGES
+
+def get_post_links_from_page_newsmobile(url='https://newsmobile.in/articles/category/nm-fact-checker'):
+    tree= get_tree(url)
+    all_links = tree.xpath('//div[contains(@class, "td-ss-main-content")]//h3[contains(@class, "entry-title")]//a')
+    links = []
+    for i, x in enumerate(all_links):
+        links.append(x.get('href'))
+    return links
+
+def get_post_newsmobile(page_url, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
+    # from a page url, get a post dict ready for upload to mongo
+    tree = get_tree(page_url)
+    metadata = get_metadata_newsmobile(tree)
+    body_elements = tree.xpath('//article')[0]
+    content = get_content_universal(tree, body_elements)
+
+    # fields
+    postID = uuid.uuid4().hex
+    domain = domain
+    # uniform date format
+    nowDate = date.today().strftime("%B %d, %Y")
+    date_updated = metadata['date_updated']
+    author = {'name': metadata['author'], 'link': metadata['author_link']}
+
+    docs = []
+    for k,v in content.items():
+        if not v:  # empty list
+            continue
+        if k == 'text':
+            content = '\n'.join(v)
+            origURL = page_url
+            doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate)
+            docs.append(doc)
+        else:
+            content = None
+            for url in v:
+                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
+                                   content=content, nowDate=nowDate)
+                docs.append(doc)
+                
+    post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
+                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+    return post
+
+
+def get_metadata_newsmobile(tree):
+    headline = tree.xpath('//h1[@class="entry-title"]')[0].text
+    datestr = tree.xpath('//time[contains(@class, "entry-date")]')[0].text
+    author = tree.xpath('//div[@class="td-post-author-name"]//a')
+    author_name = author[0].text
+    author_link = author[0].get('href')
+    metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
+    return metadata
+
+
+
+
+
+
+# afp specific helper function
+
+def get_historical_links_afp(url='https://factcheck.afp.com/afp-india', NUM_PAGES=[1], ifSleep=True, domain=None):
+    links = []
+    for page in tqdm(NUM_PAGES, desc="pages: "):
+        page_url = f'{url}?page={page}'
+        curLinks = get_post_links_from_page_afp(page_url)
+        links += curLinks
+        if ifSleep:
+            sleep(randint(10, 20))
+    return links, NUM_PAGES
+
+def get_post_links_from_page_afp(url='https://factcheck.afp.com/afp-india'):
+    tree= get_tree(url)
+    all_links = tree.xpath('//a[@class="readmore"]')
+    links = []
+    for i, x in enumerate(all_links):
+        links.append(urljoin(url, x.get('href')))
+    return links
+
+def get_post_afp(page_url, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
+    # from a page url, get a post dict ready for upload to mongo
+    tree = get_tree(page_url)
+    metadata = get_metadata_afp(tree)
+    body_elements = tree.xpath('//div[contains(@class, "article-entry")]')[0]
+    content = get_content_universal(tree, body_elements)
+
+    # fields
+    postID = uuid.uuid4().hex
+    domain = domain
+    # uniform date format
+    nowDate = date.today().strftime("%B %d, %Y")
+    date_updated = metadata['date_updated']
+    author = {'name': metadata['author'], 'link': urljoin(page_url, metadata['author_link'])}
+
+    docs = []
+    for k,v in content.items():
+        if not v:  # empty list
+            continue
+        if k == 'text':
+            content = '\n'.join(v)
+            origURL = page_url
+            doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate)
+            docs.append(doc)
+        else:
+            content = None
+            for url in v:
+                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
+                                   content=content, nowDate=nowDate)
+                docs.append(doc)
+                
+    post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
+                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+    return post
+
+
+def get_metadata_afp(tree):
+    headline = tree.xpath('//h1[contains(@class, "content-title")]')[0].text
+    datestr = datetime.strptime(tree.xpath('//span[@class="date"]')[0].text.split(" at ")[0], "%d %B, %Y").strftime('%B %d, %Y')
+    author = tree.xpath('//span[@class="meta-author"]//a')
+    author_name = author[0].text
+    author_link = author[0].get('href')
+    metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
+    return metadata
+
+
+
+
+
+
+# digiteye kannada specific helper functions
+
+def get_metadata_digiteye_kannada(tree):
+    headline = tree.xpath('//span[@itemprop="name"]')[0].text
+    metadata = {'headline': headline, 'author': None, 'author_link': None}
+    
+    return metadata
+
+def get_post_digiteye_kannada(page_url, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
+    # from a page url, get a post dict ready for upload to mongo
+    tree = get_tree(page_url)
+    metadata = get_metadata_digiteye_kannada(tree)
+    metadata['date_updated'] = page_url[28:38]
+    body_elements = tree.xpath('//article')[0]
+    content = get_content_digiteye(tree, body_elements)
+
+    # fields
+    postID = uuid.uuid4().hex
+    domain = domain
+    # uniform date format
+    nowDate = date.today().strftime("%B %d, %Y")
+    date_updated = parse(metadata['date_updated']).strftime("%B %d, %Y")
+
+    docs = []
+    for k,v in content.items():
+        if not v:  # empty list
+            continue
+        if k == 'text':
+            content = '\n'.join(v)
+            origURL = page_url
+            doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate)
+            docs.append(doc)
+        else:
+            content = None
+            for url in v:
+                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
+                                   content=content, nowDate=nowDate)
+                docs.append(doc)
+                
+    post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
+                          date_accessed=nowDate, date_updated=date_updated, docs=docs)
+    
+    return post
+
+
+# digiteye eng and telugu specific helper functions
+def get_post_links_from_page_digiteye(url='https://digiteye.in'):
+    tree= get_tree(url)
+    all_links = tree.xpath('//a[@class="more-link"]')
+    links = []
+    for i, x in enumerate(all_links):
+        #print(f'{i}: {x.get("href")}')
+        links.append(x.get('href'))
+    return links
+
+
+def get_metadata_digiteye(tree):
+    headline = tree.xpath('//span[@itemprop="name"]')[0].text
+    datestr = tree.xpath('//span[@class="tie-date"]')[0].text
+    author = tree.xpath('//span[@class="post-meta-author"]//a')
+    author_name = author[0].text
+    author_link = author[0].get('href')
+    metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
+    
+    return metadata
+
+def get_content_digiteye(tree, body_elements):
+    # return body content in a dict from page tree
+    content = {'text': [], 'video': [], 'image': [], 'tweet': []}
+
+    video = body_elements.xpath('//iframe')
+    if video: 
+        for v in video:
+            content['video'].append(v.get('src'))
+
+    text_content = body_elements.text_content()
+    if text_content:
+        content['text'].append(text_content)    
+
+    for i, x in enumerate(body_elements):        
+        image = x.xpath('img')
+        if image:
+            for im in image:
+                content['image'].append(im.get('src'))
+        
+    return content
+
+def get_post_digiteye(page_url, langs=[], domain=None, body_div=None, img_link=None, header_div=None):
+    # from a page url, get a post dict ready for upload to mongo
+    tree = get_tree(page_url)
+    metadata = get_metadata_digiteye(tree)
+    body_elements = tree.xpath('//article')[0]
+    content = get_content_digiteye(tree, body_elements)
+
+    # fields
+    postID = uuid.uuid4().hex
+    domain = domain
+    # uniform date format
+    nowDate = date.today().strftime("%B %d, %Y")
+    date_updated = parse(metadata['date_updated']).strftime("%B %d, %Y")
+    author = {'name': metadata['author'], 'link': metadata['author_link']}
+
+    docs = []
+    for k,v in content.items():
+        if not v:  # empty list
+            continue
+        if k == 'text':
+            content = '\n'.join(v)
+            origURL = page_url
+            doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate)
+            docs.append(doc)
+        else:
+            content = None
+            for url in v:
+                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
+                                   content=content, nowDate=nowDate)
+                docs.append(doc)
+                
+    post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
+                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+    
+    return post
+
+
+
+def get_historical_links_digiteye(url='https://digiteye.in', NUM_PAGES=[1], ifSleep=True, domain=None):
+    links = []
+    for page in tqdm(NUM_PAGES, desc="pages: "):
+        page_url = f'{url}/page/{page}'
+        curLinks = get_post_links_from_page_digiteye(page_url)
+        links += curLinks
+        if ifSleep:
+            sleep(randint(10, 20))
+
+    return links, NUM_PAGES
+
+
+
+
 
 # altnews specific helper functions
 def get_post_links_from_page_altnews(url='https://www.altnews.in'):
@@ -1161,7 +1613,6 @@ if __name__ == '__main__':
 
     #url = 'https://www.boomlive.in/category/fake-news'
     #db = get_db()
-    
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(10, 40))
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(40, 70))
     #scraping_boomlive_historical(url=url, db=db, langs=['english'], domain='boomlive.in', NUM_PAGES=arange(70, 101))
