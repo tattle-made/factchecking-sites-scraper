@@ -53,7 +53,7 @@ print(today)
 # setup
 n = 1
 db = get_db()
-token = "78a6fc20-fa83-11e9-a4ad-d1866a9a3c7b"  # CHANGE token
+token = ""  # CHANGE token
 # docs = get_sample_docs(n, db)
 docs = get_docs_not_on_portal(db)
 print(docs)
@@ -61,8 +61,6 @@ print(docs)
 for d in docs:
     try:
         # make the post request
-        # url = "http://13.233.84.78:3003/api/fact-check-story"
-        # url = "http://archive-staging.ap-south-1.elasticbeanstalk.com:3003/api/fact-check-story"
         url = "https://archive-server-dev.tattle.co.in/api/fact-check-story"
         payload = d
         payload = json.dumps(payload)

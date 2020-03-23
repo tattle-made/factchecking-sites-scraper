@@ -120,16 +120,6 @@ if __name__ == '__main__':
                 array_filters=[{"elem.doc_id": doc['doc_id']}],
             )
 
-#             # make the post request
-#             url = "http://13.233.84.78:3003/api/posts"
-#             payload = {"type" : "image", "data" : "", "filename": S3filename, "userId" : 164}
-#             payload = json.dumps(payload)
-#             headers = {
-#                 'token': "78a6fc20-fa83-11e9-a4ad-d1866a9a3c7b",
-#                 'Content-Type': "application/json",
-#                 'cache-control': "no-cache",
-#                 }
-#             r = requests.post(url, data=payload, headers=headers)
 
         except Exception as e:
                 print(f'failed @{url}: {e}')
