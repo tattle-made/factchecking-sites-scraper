@@ -53,7 +53,7 @@ print(today)
 # setup
 n = 1
 db = get_db()
-token = ""  # CHANGE token
+token = environ['TOKEN']  # CHANGE token
 # docs = get_sample_docs(n, db)
 docs = get_docs_not_on_portal(db)
 print(docs)
@@ -61,7 +61,7 @@ print(docs)
 for d in docs:
     try:
         # make the post request
-        url = "https://archive-server-dev.tattle.co.in/api/fact-check-story"
+        url = "https://archive-server.tattle.co.in/api/fact-check-story"
         payload = d
         payload = json.dumps(payload)
         headers = {
