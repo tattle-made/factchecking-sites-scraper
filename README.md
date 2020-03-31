@@ -9,3 +9,10 @@ A repo to store experiments and visualisations with different media and their ve
 ---
 ### [`scraping`](./scraping)
 helper functions to scrape factcheking and social media sites, upload data to an S3 bucket and maintain metadata in a mongodb
+
+# Testing
+run `nose2 -v`
+
+If you just want to run the test within one file try running
+`nose2 -v tests.<test_file_name>`.
+for instance if you wish to run all tests in the tests/test_altnews_article_scraping file, run `test_altnews_article_scraping`
