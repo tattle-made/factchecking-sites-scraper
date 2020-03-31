@@ -51,7 +51,7 @@ expected_content = {
     "instagram": []
 }
 
-class TestVishvasNewsHindiArticleScraping(unittest.TestCase):
+class TestVishvasNewsPunjabiArticleScraping(unittest.TestCase):
     def test_metadata_value(self):
         self.assertDictEqual(metadata, expected_metadata)
 
