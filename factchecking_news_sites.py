@@ -1145,7 +1145,7 @@ def run_quint():
 def get_metadata_vishvasnews(tree):
     headline = tree.xpath('//h1')[0].text.strip('\r\n ')
     datestr = tree.xpath('//ul[@class="updated"]//li')[1].text.split('Updated: ')[-1]
-    author = tree.xpath('//ul[@class="updated"]/li/span/a')
+    author = tree.xpath('//div[@class="fact-approved"]//div[@class="author"]//ul[@class="author-details"]//li[@class="name"]/a')
     author_name = author[0].text
     author_link = author[0].get('href')
     metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
