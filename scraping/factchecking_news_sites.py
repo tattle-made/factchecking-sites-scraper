@@ -25,13 +25,13 @@ def get_db():
     # replace with your own db
     mongo_url = environ['SCRAPING_URL']
     cli = MongoClient(mongo_url)
-    db = cli.factcheck_sites.stories
+    db = cli.factcheck_sites_dev.stories
     
     return db
 
 # note: priorSchema uses postID as index, and DocSchema uses doc_id
 def getDocSchema(doc_id=None, postID=None, domain=None, origURL=None, s3URL=None, possibleLangs=None, isGoodPrior=[0,0], 
-                 mediaType=None, content=None, nowDate=None):
+                 mediaType=None, content=None, nowDate=None,nowDate_UTC=None):
     # schema for an individual doc inside a news article
     if doc_id == None:
         doc_id = uuid.uuid4().hex
@@ -45,12 +45,14 @@ def getDocSchema(doc_id=None, postID=None, domain=None, origURL=None, s3URL=None
         'isGoodPrior': isGoodPrior,  # no of [-ve votes, +ve votes]
         'mediaType': mediaType,  # ['text', 'image', 'video', 'audio']
         'content': content,  # text, if media_type = text or text in image/audio/video
-        'nowDate': nowDate  # date of scraping, same as date_accessed
+        'nowDate': nowDate,  # date of scraping, same as date_accessed
+        'nowDate_UTC': nowDate_UTC
     }
 
     return doc
 
-def getStorySchema(postID=None, postURL=None, domain=None, headline=None, date_accessed=None, date_updated=None, 
+def getStorySchema(postID=None, postURL=None, domain=None, headline=None, date_accessed=None, 
+                   date_accessed_UTC=None,date_updated=None, date_updated_UTC=None,
                    author=None, docs=[]):
     # schema for a news story/article
     if postID == None:
@@ -62,7 +64,9 @@ def getStorySchema(postID=None, postURL=None, domain=None, headline=None, date_a
         'domain': domain,  # domain such as altnews/factly
         'headline': headline,  # headline text
         'date_accessed': date_accessed,  # date scraped
+        'date_accessed_UTC': date_accessed_UTC,
         'date_updated': date_updated,  # later of date published/updated
+        'date_updated_UTC': date_updated_UTC,  # later of date published/updated
         'author': author,
         'docs': docs
     }
@@ -90,6 +94,7 @@ def get_tree(url):
 # site-agnostic scraping functions
 def scraping_site_links(getPost=None, links=None, db=None, langs=[], domain=None, csvErr=None, 
                         body_div=None, img_link=None, header_div=None):
+    print("scraping site links")
     for l in tqdm(links, desc="links: "):
         try:
             if db.count_documents({'postURL': l}):
@@ -119,7 +124,7 @@ def get_live_links(getLinks=None, url=None, db=None, domain=None):
     newLink = True
     page_num = 1
     all_links = []
-
+    print("getting live links")
     while newLink:
         links, _ = getLinks(url=url, NUM_PAGES=[page_num], domain=domain)
         if len(links) == 0:
@@ -177,6 +182,7 @@ def get_post_links_from_page_factcrescendo(url='https://www.factcrescendo.com'):
     all_links = tree.xpath('//span[@class="np-archive-more"]//a')
     links = []
     for i, x in enumerate(all_links):
+        print(x.get('href'))
         links.append(x.get('href'))
     return links
 
@@ -192,7 +198,14 @@ def get_post_factcrescendo(page_url, langs=[], domain=None, body_div=None, img_l
     domain = domain
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
+    print(nowDate_UTC)
+
     date_updated = metadata['date_updated']
+    print(date_updated)
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
+    print(date_updated_UTC)
+
     author = {'name': metadata['author'], 'link': metadata['author_link']}
 
     docs = []
@@ -203,17 +216,19 @@ def get_post_factcrescendo(page_url, langs=[], domain=None, body_div=None, img_l
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
                 doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                                   content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC, author=author, docs=docs)
+    print(post)
     return post
 
 
@@ -261,7 +276,9 @@ def get_post_factchecker(page_url, langs=[], domain=None, body_div=None, img_lin
     domain = domain
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = metadata['date_updated']
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
     author = {'name': metadata['author'], 'link': metadata['author_link']}
 
     docs = []
@@ -272,17 +289,18 @@ def get_post_factchecker(page_url, langs=[], domain=None, body_div=None, img_lin
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
                 doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                                   content=content,nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     return post
 
 
@@ -333,7 +351,10 @@ def get_post_newsmobile(page_url, langs=[], domain=None, body_div=None, img_link
     domain = domain
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = metadata['date_updated']
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
+
     author = {'name': metadata['author'], 'link': metadata['author_link']}
 
     docs = []
@@ -344,17 +365,18 @@ def get_post_newsmobile(page_url, langs=[], domain=None, body_div=None, img_link
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
                 doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                                   content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     return post
 
 
@@ -404,7 +426,10 @@ def get_post_afp(page_url, langs=[], domain=None, body_div=None, img_link=None, 
     domain = domain
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = metadata['date_updated']
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
+    
     author = {'name': metadata['author'], 'link': urljoin(page_url, metadata['author_link'])}
 
     docs = []
@@ -415,17 +440,18 @@ def get_post_afp(page_url, langs=[], domain=None, body_div=None, img_link=None, 
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC, author=author, docs=docs)
     return post
 
 
@@ -464,7 +490,9 @@ def get_post_digiteye_kannada(page_url, langs=[], domain=None, body_div=None, im
     domain = domain
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = parse(metadata['date_updated']).strftime("%B %d, %Y")
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
 
     docs = []
     for k,v in content.items():
@@ -474,17 +502,18 @@ def get_post_digiteye_kannada(page_url, langs=[], domain=None, body_div=None, im
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, docs=docs)
+                          date_accessed=nowDate, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC, docs=docs)
     
     return post
 
@@ -543,7 +572,9 @@ def get_post_digiteye(page_url, langs=[], domain=None, body_div=None, img_link=N
     domain = domain
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = parse(metadata['date_updated']).strftime("%B %d, %Y")
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
     author = {'name': metadata['author'], 'link': metadata['author_link']}
 
     docs = []
@@ -554,17 +585,20 @@ def get_post_digiteye(page_url, langs=[], domain=None, body_div=None, img_link=N
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
+            print(doc)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
+                print(doc)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     
     return post
 
@@ -640,7 +674,9 @@ def get_post_altnews(page_url, langs=[], domain=None, body_div=None, img_link=No
     domain = domain
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = parse(metadata['date_updated']).strftime("%B %d, %Y")
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
     author = {'name': metadata['author'], 'link': metadata['author_link']}
 
     docs = []
@@ -651,17 +687,18 @@ def get_post_altnews(page_url, langs=[], domain=None, body_div=None, img_link=No
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     
     return post
 
@@ -767,7 +804,10 @@ def get_post_boomlive(page_url, langs=[], domain=None, body_div='div[@class="pf-
     postID = uuid.uuid4().hex
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = metadata['date_updated']
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
+    
     author = {'name': metadata['author'], 'link': metadata['author_link']}
     
     docs = []
@@ -778,17 +818,18 @@ def get_post_boomlive(page_url, langs=[], domain=None, body_div='div[@class="pf-
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     
     return post
 
@@ -881,7 +922,10 @@ def get_post_factly(page_url, langs=[], domain=None, body_div=None, img_link=Non
     postID = uuid.uuid4().hex
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = metadata['date_updated']
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
+    
     author = {'name': metadata['author'], 'link': metadata['author_link']}
     
     docs = []
@@ -892,17 +936,18 @@ def get_post_factly(page_url, langs=[], domain=None, body_div=None, img_link=Non
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     
     return post
 
@@ -1066,7 +1111,10 @@ def get_post_quint(page_url, driver=None, langs=[], domain=None, body_div=None, 
     postID = uuid.uuid4().hex
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = metadata['date_updated']
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
+    
     author = {'name': metadata['author'], 'link': metadata['author_link']}
     
     docs = []
@@ -1077,17 +1125,18 @@ def get_post_quint(page_url, driver=None, langs=[], domain=None, body_div=None, 
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     
     return post
 
@@ -1242,7 +1291,10 @@ def get_post_vishvasnews(page_url, langs=[], domain=None, body_div=None, img_lin
     postID = uuid.uuid4().hex
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = metadata['date_updated']
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
+    
     author = {'name': metadata['author'], 'link': metadata['author_link']}
     
     docs = []
@@ -1253,17 +1305,18 @@ def get_post_vishvasnews(page_url, langs=[], domain=None, body_div=None, img_lin
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     
     return post
 
@@ -1546,7 +1599,10 @@ def get_post_indiatoday(page_url, langs=[], domain=None, body_div=None, header_d
     postID = uuid.uuid4().hex
     # uniform date format
     nowDate = date.today().strftime("%B %d, %Y")
+    nowDate_UTC = datetime.utcnow()
     date_updated = metadata['date_updated']
+    date_updated_UTC = datetime.strptime(date_updated, "%B %d, %Y")
+    
     author = {'name': metadata['author'], 'link': metadata['author_link']}
     
     docs = []
@@ -1557,17 +1613,18 @@ def get_post_indiatoday(page_url, langs=[], domain=None, body_div=None, header_d
             content = '\n'.join(v)
             origURL = page_url
             doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
-                               content=content, nowDate=nowDate)
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
             docs.append(doc)
         else:
             content = None
             for url in v:
-                doc = getDocSchema(postID=postID, domain=domain, origURL=url, possibleLangs=langs, mediaType=k, 
-                                   content=content, nowDate=nowDate)
+                doc = getDocSchema(postID=postID, domain=domain, origURL=origURL, possibleLangs=langs, mediaType=k, 
+                               content=content, nowDate=nowDate, nowDate_UTC=nowDate_UTC)
                 docs.append(doc)
                 
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
-                          date_accessed=nowDate, date_updated=date_updated, author=author, docs=docs)
+                          date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
+                          date_updated_UTC=date_updated_UTC,author=author, docs=docs)
     
     return post
 
