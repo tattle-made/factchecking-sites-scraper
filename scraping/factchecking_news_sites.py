@@ -228,7 +228,7 @@ def get_post_factcrescendo(page_url, langs=[], domain=None, body_div=None, img_l
     post = getStorySchema(postID=postID, postURL=page_url, domain=domain, headline=metadata['headline'], 
                           date_accessed=nowDate, date_accessed_UTC=nowDate_UTC, date_updated=date_updated, 
                           date_updated_UTC=date_updated_UTC, author=author, docs=docs)
-    print(post)
+    #print(post)
     return post
 
 
@@ -312,10 +312,6 @@ def get_metadata_factchecker(tree):
     author_link = author[0].get('href')
     metadata = {'headline': headline, 'author': author_name, 'author_link': author_link, 'date_updated': datestr}
     return metadata
-
-    
-
-
 
 
 
