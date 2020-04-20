@@ -24,17 +24,17 @@ services:
             ME_CONFIG_MONGODB_ADMINUSERNAME: $FCS_MONGO_USERNAME
             ME_CONFIG_MONGODB_ADMINPASSWORD: $FCS_MONGO_PASSWORD
 
-    # server:
-    #     container_name: server
-    #     restart: always
-    #     build:
-    #         context: .
-    #         dockerfile: Dockerfile
-    #     environment:
-    #         - FLASK_ENV=docker
-    #     ports:
-    #         - 5001:5001
-    #     volumes:
-    #         - .:/app
-    #     depends_on:
-    #         - mongo
+    server:
+        container_name: server
+        restart: always
+        build:
+            context: .
+            dockerfile: Dockerfile
+        environment:
+            - FLASK_ENV=docker
+        ports:
+            - 5001:5001
+        volumes:
+            - .:/app
+        depends_on:
+            - mongo
