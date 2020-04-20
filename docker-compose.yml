@@ -1,0 +1,32 @@
+version: '3.7'
+services:
+    mongo:
+        image: mongo:latest
+        env_file: .env
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: $FCS_MONGO_USERNAME
+            MONGO_INITDB_ROOT_PASSWORD: $FCS_MONGO_PASSWORD
+        ports:
+            - 27017:27017
+        volumes:
+            - "~/data/factcheck-scraper/data:/data/db"
+    
+    mongo_ui:
+        image: mongo-express
+        ports:
+            - 8081:8081
+
+    server:
+        container_name: server
+        restart: always
+        build:
+            context: .
+            dockerfile: Dockerfile
+        environment:
+            - FLASK_ENV=docker
+        ports:
+            - 5001:5001
+        volumes:
+            - .:/app
+        depends_on:
+            - mongodb_container
