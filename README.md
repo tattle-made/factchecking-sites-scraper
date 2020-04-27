@@ -33,23 +33,24 @@ The code can be amended so that content is written to a local folder (instead of
 
 ### Steps to Run:
 
-* Add your s3, Mongo DB credentials to a .env file which should be in the scraping folder.
+* Add your s3, Mongo DB credentials to a .env file which should be in the [scraping folder](https://github.com/tattle-made/tattle-research/tree/master/scraping).
 * Make sure the sites you want the scraper run for during the day are not commented out in live_scraping.py
-* Run live_scraping.py 
+* Run [live_scraping.py] (https://github.com/tattle-made/tattle-research/blob/master/scraping/live_scraping.py)
 This step will scrape the sites and upload the content from fact checking sites as per this [data structure](http://blog.tattle.co.in/scraping-fact-checked-news/) to the mongo DB. At this stage the images/videos have not been uploaded to s3. Only the url of these items on the fact checking sites is retrieved. 
 
-* Run Upload_to_s3.py
+* Run [Upload_to_s3.py](https://github.com/tattle-made/tattle-research/blob/master/scraping/upload_to_s3.py)
 This retrieves the URLs for items on the fact checking sites, downloads them to an s3 bucket and updates the MongoDB with an s3 link. 
 
-* Run Register_to_portal.py (optional)
+* Run [Register_to_portal.py](https://github.com/tattle-made/tattle-research/blob/master/scraping/register_to_portal.py) (optional)
 This step registers the media items to Tattle kosh. If you don't have credentials to write to the kosh, skip this step. 
 
 ## Code Structure
 
 The fact-checking scraper comprises of two essential files:
-[live_scraping](https://github.com/tattle-made/tattle-research/blob/master/live_scraping.py): The config file where you can describe which all sites you want scraped. This is the file that is scraped. 
 
-[factchecking_news_sites](https://github.com/tattle-made/tattle-research/blob/master/factchecking_news_sites.py): the file which contains helper functions for each of the fact checking sites. The code is structured so that there are separate helper functions for each fact-checking site. This allows for errors for a specific fact checking site to be isolated, without affecting scraping for other sites. 
+* [live_scraping](https://github.com/tattle-made/tattle-research/blob/master/live_scraping.py): The config file where you can describe which all sites you want scraped. This is the file that is scraped. 
+
+* [factchecking_news_sites](https://github.com/tattle-made/tattle-research/blob/master/factchecking_news_sites.py): the file which contains helper functions for each of the fact checking sites. The code is structured so that there are separate helper functions for each fact-checking site. This allows for errors for a specific fact checking site to be isolated, without affecting scraping for other sites. 
 
 A third file [live_scraping_cmd](https://github.com/tattle-made/tattle-research/blob/master/live_scraping_cmd.py) allows scraping one file at a time with command-line arguments and can be used for ad-hoc testing. 
 
@@ -71,10 +72,10 @@ Few sites (such as Quint Webqoof) render most content dynamically on the client,
 Find more details in [blog](http://blog.tattle.co.in/scraping-fact-checked-news/)
 
 ## Request Access
-If you want access to the fact-checking sites data please fill out[this form] https://docs.google.com/forms/d/e/1FAIpQLSd6KtwsHiS1JaIME0D7n6CDrqZR3swI4D9i8fR2kr1Lp2CTvA/viewform?usp=sf_link. If you have a specific requirement not covered by this form, please ping us on Slack. 
+If you want access to the fact-checking sites data please fill out[this form] (https://docs.google.com/forms/d/e/1FAIpQLSd6KtwsHiS1JaIME0D7n6CDrqZR3swI4D9i8fR2kr1Lp2CTvA/viewform?usp=sf_link). If you have a specific requirement not covered by this form, please ping us on Slack. 
 
 ## Contribute
-Please see instructions [here](CONTRIBUTING.md).
+Please see instructions [here](CONTRIBUTE.md).
 
 ## Get help with developing
 
