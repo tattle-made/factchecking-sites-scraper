@@ -5,8 +5,6 @@ One of Tattle's goals is to make stories fact-checking content circulated on cha
 ## Introduction
 This repository contains collection of scripts to scrape the factchecking sections of the following sites:
 
-## scraping
-This repository contains collection of scripts to scrape the factchecking sections of the following sites:
 - [altnews](https://www.altnews.in/): english + hindi  
 - [quint](https://www.thequint.com/news/webqoof)
 - [boomlive](https://www.boomlive.in/): english + hindi + bangla
