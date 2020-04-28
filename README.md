@@ -2,7 +2,7 @@
 
 One of Tattle's goals is to make stories fact-checking content circulated on chat apps and social media more accessible to mobile first users. To make the content accessible, Tattle wants the content to be discoverable through image search and video search. To implement search, Tattle needs the multi-media content inside the stories from fact-checking sites, linked with the sites that it is coming from.  
 
-# Introduction
+## Introduction
 This repository contains collection of scripts to scrape the factchecking sections of the following sites:
 
 - [altnews](https://www.altnews.in/): english + hindi  
@@ -15,7 +15,7 @@ This repository contains collection of scripts to scrape the factchecking sectio
 - [newsmobile.in](https://newsmobile.in/articles/category/nm-fact-checker):english
 At present Tattle only scrapes [IFCN](https://ifcncodeofprinciples.poynter.org/signatories) certified fact-checking sites. 
 
-# Running Locally:
+## Running Locally:
 
 ### Prerequisites:
 
@@ -71,21 +71,21 @@ These divs can then be organized into jsons and dumped to a database (mongodb).
 Few sites (such as Quint Webqoof) render most content dynamically on the client, these require a more involved approach with selenium. Selenium is also used with social media sites to scroll through and load more posts.
 Find more details in [blog](http://blog.tattle.co.in/scraping-fact-checked-news/)
 
-# Request Access
+## Request Access
 If you want access to the fact-checking sites data please fill out [this form](https://docs.google.com/forms/d/e/1FAIpQLSd6KtwsHiS1JaIME0D7n6CDrqZR3swI4D9i8fR2kr1Lp2CTvA/viewform?usp=sf_link). If you have a specific requirement not covered by this form, please ping us on [Slack](https://join.slack.com/t/tattle-workspace/shared_invite/zt-da07n75v-kIw9Z5b~_gDKP~JsScP1Vg). 
 
-# Contribute
+## Contribute
 Please see instructions [here](CONTRIBUTE.md).
 
-# Get help with developing
+## Get help with developing
 
 Join our [Slack channel](https://join.slack.com/t/tattle-workspace/shared_invite/zt-da07n75v-kIw9Z5b~_gDKP~JsScP1Vg) to get someone to respond to immediate doubts and queries.
 
-# Want to get help deploying it into your organisation?
+## Want to get help deploying it into your organisation?
 
 Contact us at admin@tattle.co.in or ping us on [Slack channel](https://join.slack.com/t/tattle-workspace/shared_invite/zt-da07n75v-kIw9Z5b~_gDKP~JsScP1Vg)
 
 
-# Licence
+## Licence
 When you submit code changes, your submissions are understood to be under the same licence that covers the project - GPL-3. Feel free to contact the maintainers if that's a concern.
 
