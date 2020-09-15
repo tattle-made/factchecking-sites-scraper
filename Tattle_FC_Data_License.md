@@ -274,13 +274,12 @@ is available under this License.
   a. Example notice. The following text will satisfy notice under
   Section 4.3:
 
-        Contains information from DATABASE NAME, which is made available
-        here under the Open Database License (ODbL).
+        Contains information from Tattle Fact Checking Sites Database, 
+        which is made available [here](https://services.tattle.co.in/khoj/) under the 
+       [Open Database License (ODbL)](https://github.com/tattle-made/tattle-research/blob/master/Tattle_FC_Data_License.md).
 
-DATABASE NAME should be replaced with the name of the Database and a
-hyperlink to the URI of the Database. "Open Database License" should
-contain a hyperlink to the URI of the text of this License. If
-hyperlinks are not possible, You should include the plain text of the
+
+If hyperlinks are not possible, You should include the plain text of the
 required URI's with the above notice.
  
 4.4 Share alike. 
