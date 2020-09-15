@@ -286,14 +286,13 @@ required URI's with the above notice.
 
   a. Any Derivative Database that You Publicly Use must be only under
   the terms of: 
-
-    i. This License;
-
-    ii. A later version of this License similar in spirit to this
-      License; or
-
-    iii. A compatible license. 
-
+  
+  i.    This License;
+  ii.   A later version of this License similar in spirit to this
+        License; or
+  iii.  A compatible license.
+  
+  
   If You license the Derivative Database under one of the licenses
   mentioned in (iii), You must comply with the terms of that license. 
 
