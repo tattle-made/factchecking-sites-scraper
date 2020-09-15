@@ -1,5 +1,5 @@
 This fact checking sites database was put together by Tattle by crawling different fact checking sites. The content on each of the [crawled links](https://github.com/tattle-made/tattle-research/blob/master/factchecking_sites_status.md) belongs to the respective fact checking sites. 
-The entire database is licensed under the Open Database License (ODbL). The license terms are as follows:
+The entire database is licensed under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/) . The license terms are as follows:
 
 
 ### Preamble
