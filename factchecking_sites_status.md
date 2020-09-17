@@ -7,7 +7,7 @@
 * Factchecker: https://www.factchecker.in/
 * Newsmobile: http://newsmobile.in/articles/category/nm-fact-checker/
 * The Quint Webqoof: https://www.thequint.com/news/webqoof 
-http://creativecommons.org/licenses/by/4.0/
+
 
  News Site                          | Website                                                 | License Terms                        |
 | :-------------------------------- | :----------------------------------------------------:  | ------------------------------------:|
