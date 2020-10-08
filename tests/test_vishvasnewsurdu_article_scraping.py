@@ -1,20 +1,27 @@
 import unittest
-from factchecking_news_sites import get_tree, get_metadata_vishvasnews, get_content_vishvasnews, get_post_vishvasnews
+from scraping.factchecking_news_sites import (
+    get_tree,
+    get_metadata_vishvasnews,
+    get_content_vishvasnews,
+    get_post_vishvasnews,
+)
 
 ARTICLE_URL = "https://www.vishvasnews.com/urdu/viral/fact-check-not-chinese-but-kyrgyz-people-detained-in-patna-over-coronavirus-suspect/"
 tree = get_tree(ARTICLE_URL)
 metadata = get_metadata_vishvasnews(tree)
-body_div="div[@class='lhs-area']"
-body_elements = tree.xpath(f'//{body_div}/*[self::p or self::h2]')
+body_div = "div[@class='lhs-area']"
+body_elements = tree.xpath(f"//{body_div}/*[self::p or self::h2]")
 content = get_content_vishvasnews(tree, body_elements, body_div=body_div)
-post = get_post_vishvasnews(ARTICLE_URL, langs=["urdu"], body_div="div[@class='lhs-area']")
+post = get_post_vishvasnews(
+    ARTICLE_URL, langs=["urdu"], body_div="div[@class='lhs-area']"
+)
 
 
 expected_metadata = {
     "headline": "فیکٹ چیک: پٹنہ میں مسجد سے چینی مسلمانوں کے پکڑے جانے کا دعویٰ غلط، گمراہ کن دعویٰ کے ساتھ وائرل ہو رہا ویڈیو",
     "author": "Abhishek Parashar",
     "author_link": "https://www.vishvasnews.com/urdu/author/abhishek-parashar/",
-    "date_updated": "March 25, 2020"
+    "date_updated": "March 25, 2020",
 }
 
 expected_content = {
@@ -37,11 +44,11 @@ expected_content = {
         "وشواس نیوز نے اس معاملہ کو لے کر پٹنہ کے سٹی ایس پی (سنٹرل) سے بات کی۔ یہ پوچھے جانے پر کیا حراست میں لئے گئے شخص چینی شہری ہیں، سٹی ایس پی امرکیش ڈی نے کہا، ’کل 12 لوگوں کو پکڑا گیا تھا، جس میں 10 غیر ملکی ہیں اور تمام افراد کرغستان کے شہری ہیں‘‘۔ غیر ملکی شہریوں کے ملک میں غیر قانونی طریقہ سے رہنے کے بارے میں پوچھے جانے پر انہوں نے کہا، ’’سبھی شہریوں کے قانونی دستاویز ہیں اور اس میں سے کوئی بھی غیر قانونی طریقہ سے پٹنہ میں نہیں رہ رہا تھا۔ فی الحال ان لوگوں کو کوارنٹائن میں رکھا گیا ہے‘‘۔",
         "اب باری تھی اس ویڈیو کو فرضی دعویٰ کے ساتھ وائرل کرنے والے فیس بک پیج ’ڈاکٹر سدھانشو تریویدی فین کلب‘ کی سوشل اسکیننگ کرنے کی۔ ہم نے پایا کہ اس پیج کو132,948 فالوو کرتے ہیں۔",
         "\r\n\r\n نتیجہ:\r\n\r\n \r\nبہار کی دارالحکومت پٹنہ کے ایک مسجد میں چینی مسلمانوں کے پکڑے جانے کے دعویٰ کے ساتھ وائرل ہو رہا ویڈیو گمراہ کن ہے۔ پکڑے گئے تمام شہری کرغستان کے ہیں، جنہیں حراست میں لے کر کوارنٹائن میں رکھا گیا ہے۔\n",
-        "ٹیگز"
+        "ٹیگز",
     ],
     "video": [
         "https://www.facebook.com/plugins/video.phphref=https%3A%2F%2Fwww.facebook.com%2Fbiharaajtaknews%2Fvideos%2F214502123240698%2F&show_text=0&width=261",
-        "https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Flivebihar.live%2Fvideos%2F2628143930755278%2F&show_text=0&width=261"
+        "https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Flivebihar.live%2Fvideos%2F2628143930755278%2F&show_text=0&width=261",
     ],
     "image": [
         "https://www.vishvasnews.com/wp-content/uploads/2020/03/Fake_News_March25_9.jpg",
@@ -55,14 +62,15 @@ expected_content = {
         "https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/false-emoji.png",
         "https://www.vishvasnews.com/wp-content/uploads/2019/07/abhishekprashar-150x150.jpg",
         "https://www.vishvasnews.com/wp-content/uploads/2019/08/2017-11-25-14-24-26-050-150x150.jpg",
-        "https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/quiz_img.png"
+        "https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/quiz_img.png",
     ],
     "tweet": [
         "https://twitter.com/PTI_News/status/1242037544046317568?ref_src=twsrc%5Etfw"
     ],
     "facebook": [],
-    "instagram": []
+    "instagram": [],
 }
+
 
 class TestVishvasNewsUrduArticleScraping(unittest.TestCase):
     def test_metadata_value(self):
@@ -72,7 +80,7 @@ class TestVishvasNewsUrduArticleScraping(unittest.TestCase):
         self.assertDictEqual(content, expected_content)
 
     def test_post_structure(self):
-        self.assertIn('postID', post)
-        self.assertIn('postURL', post)
-        self.assertIn('author', post)
-        self.assertIn('docs', post)
+        self.assertIn("postID", post)
+        self.assertIn("postURL", post)
+        self.assertIn("author", post)
+        self.assertIn("docs", post)

@@ -116,3 +116,6 @@ tests/*.out
 tests/*.err
 .out
 .err
+
+# PyCharm
+.idea/
