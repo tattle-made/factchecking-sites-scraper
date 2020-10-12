@@ -119,3 +119,12 @@ tests/*.err
 
 # PyCharm
 .idea/
+
+# Scraper logs
+*.log
+*.err
+scraping/*.log
+scraping/*.err
+
+# Temporary pipeline output
+*.pkl

@@ -229,8 +229,6 @@ def get_content_universal(tree, body_elements):
 
 
 # factcrescendo specific helper function
-
-
 def get_historical_links_factcrescendo(
     url="https://www.factcrescendo.com", NUM_PAGES=[1], ifSleep=True, domain=None
 ):
@@ -344,8 +342,6 @@ def get_metadata_factcrescendo(tree):
 
 
 # factchecker specific helper function
-
-
 def get_historical_links_factchecker(
     url="https://www.factchecker.in", NUM_PAGES=[1], ifSleep=True, domain=None
 ):
@@ -451,8 +447,6 @@ def get_metadata_factchecker(tree):
 
 
 # newsmobile specific helper function
-
-
 def get_historical_links_newsmobile(
     url="https://newsmobile.in/articles/category/nm-fact-checker",
     NUM_PAGES=[1],
@@ -566,8 +560,6 @@ def get_metadata_newsmobile(tree):
 
 
 # afp specific helper function
-
-
 def get_historical_links_afp(
     url="https://factcheck.afp.com/afp-india", NUM_PAGES=[1], ifSleep=True, domain=None
 ):
@@ -679,8 +671,6 @@ def get_metadata_afp(tree):
 
 
 # digiteye kannada specific helper functions
-
-
 def get_metadata_digiteye_kannada(tree):
     headline = tree.xpath('//span[@itemprop="name"]')[0].text
     metadata = {"headline": headline, "author": None, "author_link": None}

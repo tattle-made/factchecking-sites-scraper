@@ -1,5 +1,5 @@
-from scraping.factchecking_news_sites import get_content_quint_test
-from scraping.factchecking_news_sites import setup_driver
+from factchecking_news_sites import get_content_quint_test
+from factchecking_news_sites import setup_driver
 
 
 def test_quint():

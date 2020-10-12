@@ -2,24 +2,24 @@ from os import environ
 from sys import argv, exit
 from datetime import date
 from dotenv import load_dotenv
-from scraping.factchecking_news_sites import (
+from factchecking_news_sites import (
     get_db,
     get_live_links,
     scraping_site_links,
 )
-from scraping.factchecking_news_sites import (
+from factchecking_news_sites import (
     get_post_altnews,
     get_historical_links_altnews,
     get_post_boomlive,
     get_historical_links_boomlive,
 )
-from scraping.factchecking_news_sites import (
+from factchecking_news_sites import (
     get_post_factly,
     get_historical_links_factly,
     get_post_indiatoday,
     get_historical_links_indiatoday,
 )
-from scraping.factchecking_news_sites import (
+from factchecking_news_sites import (
     get_post_vishvasnews,
     get_historical_links_vishvasnews,
     get_post_quint,
@@ -163,7 +163,7 @@ if site not in sites.keys():
 bucket = "tattle-logs"
 region_name = "ap-south-1"
 db = get_db()
-s3 = aws_connection()
+# s3 = aws_connection()
 
 # setup logs
 today = date.today().strftime("%Y%m%d")
@@ -209,5 +209,6 @@ scraping_site_links(
 ###############################################################
 # upload csv
 # ContentType = 'text/plain'
-s3.upload_file(csvLog, bucket, csvLog)
-s3.upload_file(csvErr, bucket, csvErr)
+# TODO
+# s3.upload_file(csvLog, bucket, csvLog)
+# s3.upload_file(csvErr, bucket, csvErr)
