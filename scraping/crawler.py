@@ -51,10 +51,7 @@ class Crawler:
         )
 
         for url in url_list:
-            if not coll.count_documents({}):
-                # Collection empty
-                new_urls_list.append(url)
-            elif not coll.count_documents({"postURL": url}, {"limit": 1}):
+            if not coll.count_documents({"postURL": url}, {}):
                 # URL not in DB
                 new_urls_list.append(url)
 

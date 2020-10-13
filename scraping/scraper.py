@@ -167,9 +167,7 @@ class Scraper:
         )
 
         for url in tqdm(url_list, desc="links: "):
-            if not coll.count_documents({}) or not coll.count_documents(
-                {"postURL": url}
-            ):
+            if not coll.count_documents({"postURL": url}):
                 # collection empty or url not in collection
                 log_adapter.info(f"Saving post: {url}")
 
@@ -271,10 +269,10 @@ class Scraper:
         return
 
 
-site = "altnews.in"
+site = "altnews.in/hindi"
 scraper = Scraper(
     crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="11.10.2020"
 )
-# scraper.crawler()
-# scraper.article_downloader()
-# scraper.article_parser()
+scraper.crawler()
+scraper.article_downloader()
+scraper.article_parser()
