@@ -126,5 +126,6 @@ tests/*.err
 scraping/*.log
 scraping/*.err
 
-# Temporary pipeline output
+# out files
 *.pkl
+*.json

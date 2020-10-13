@@ -1,4 +1,5 @@
 from time import sleep
+from time import time
 import os
 import logging
 import json
@@ -6,6 +7,8 @@ from numpy.random import randint
 from tqdm import tqdm
 
 from selenium import webdriver
+from lxml.html import fromstring
+import requests
 
 import constants
 
@@ -75,7 +78,7 @@ def get_local_time(url):
 
     if os.path.exists(constants.SCRAPE_TIME_FILEPATH):
         # open file
-        log_file = open(constants.SCRAPE_TIME_FILEPATH)
+        log_file = open(constants.SCRAPE_TIME_FILEPATH, "r")
 
         scrape_time_dict = json.load(log_file)
 
@@ -103,7 +106,25 @@ def get_remote_time(url):
     return time
 
 
-def get_last_scrape_time(mode, url):
+def save_crawl_time(url):
+
+    with open(constants.SCRAPE_TIME_FILEPATH, "w+") as log_file:
+        if not os.path.getsize(constants.SCRAPE_TIME_FILEPATH):
+            # file empty
+            scrape_time_dict = {}
+        else:
+            scrape_time_dict = {json.load(log_file)}
+            print(scrape_time_dict)
+
+        current_time = int(time() * 1000)
+        scrape_time_dict[url] = current_time
+
+        json.dump(scrape_time_dict, log_file)
+
+    return None
+
+
+def get_last_crawl_time(mode, url):
     """
     Get stored time when url was last scraped
 
@@ -125,6 +146,28 @@ def get_last_scrape_time(mode, url):
         time = constants.MODE_INVALID
 
     return time
+
+
+def get_tree(url):
+    # get the tree of each page
+    # TODO: https://www.peterbe.com/plog/best-practice-with-retries-with-requests
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
+        "Content-Type": "text/html",
+    }
+    html = None
+    while True:
+        try:
+            html = requests.get(url, headers=headers)
+            break
+        except Exception as e:
+            print(f"failed request: {e}")
+    if "boomlive" in url:
+        html.encoding = "utf-8"
+
+    tree = fromstring(html.text)
+
+    return tree
 
 
 # ================== SELENIUM HELPER FUNCTIONS BEGIN ==================

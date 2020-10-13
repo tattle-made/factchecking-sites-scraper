@@ -1,7 +1,10 @@
 import pickle
 import os
 from time import time
+from time import sleep
 from datetime import datetime
+from numpy.random import randint
+from tqdm import tqdm
 
 from lxml.html import fromstring
 
@@ -94,6 +97,7 @@ class Crawler:
     def get_scrape_days(self, scrape_date: int) -> int:
         """
         Get number of days to scrape urls
+        # TODO: use this once scraping by date implemented
 
         Args:
             scrape_date: int
@@ -110,6 +114,58 @@ class Crawler:
         day_count += 1
 
         return day_count
+
+    # ======================== QUINT HELPER FUNCTIONS BEGIN ========================
+
+    def get_historical_links_quint(
+        self, scrape_date: int, if_sleep: bool = True
+    ) -> list:
+        # get story links based on url and page range
+        url_list = []
+
+        # TODO: remove page_count once crawling by date implemented
+        # day_count = self.get_scrape_days(scrape_date)
+        page_count = 2
+
+        for page in tqdm(range(page_count), desc="pages: "):
+            page_url = f"{self.crawler_url}/{page}"
+            tree = utils.get_tree(page_url)
+            if if_sleep:
+                sleep(randint(1, 5))
+
+            # 12 story layout
+            # 1 link
+            link = tree.xpath(
+                "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[1]/a"
+            )
+            url_list.append(link[0].get("href"))
+            # 5 links
+            links = tree.xpath('//div[contains(@class,"custom-story-card-4")]/a[@href]')
+            for link in links:
+                url_list.append(link.get("href"))
+            # 1 link
+            link = tree.xpath(
+                "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[3]/div[1]/a[2]"
+            )
+            url_list.append(link[0].get("href"))
+            # 1 link
+            link = tree.xpath(
+                "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[3]/div[2]/a[2]"
+            )
+            url_list.append(link[0].get("href"))
+            # 4 links
+            links = tree.xpath('//div[contains(@class,"custom-story-card-5")]/a[@href]')
+            for link in links:
+                url_list.append(link.get("href"))
+
+        # get unique urls
+        url_list = list(set(url_list))
+        # append "/" to end of each url for article_downloader to function correctly
+        url_list = list(map(lambda url: f"{url}/", url_list))
+
+        return url_list
+
+    # ======================== QUINT HELPER FUNCTIONS END ========================
 
     # ======================== ALTNEWS HELPER FUNCTIONS BEGIN ========================
 

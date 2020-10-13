@@ -128,5 +128,7 @@ SITES = {
         "url": "https://www.thequint.com/news/webqoof",
         "langs": ["english"],
         "domain": "thequint.com",
+        "getLinks": "get_historical_links_quint",
+        "getPost": "get_post_quint",
     },
 }

@@ -2,11 +2,13 @@ import uuid
 from datetime import date
 from datetime import datetime
 from dateutil.parser import parse
+import json
 
 from lxml.html import fromstring
 from lxml.html import HtmlElement
 
 import db
+import utils
 
 
 class ArticleParser:
@@ -32,6 +34,147 @@ class ArticleParser:
         tree = fromstring(html)
 
         return tree
+
+    # ================ QUINT HELPER FUNCTIONS BEGIN ====================
+
+    def get_metadata_quint(self, tree):
+        data = tree.xpath('//script[@type="application/ld+json"]')[2].text
+        json_data = json.loads(data)
+
+        headline = json_data["headline"]
+        datestr = parse(json_data["dateModified"]).strftime("%B %d, %Y")
+        author = json_data["author"]
+        author_name = author["name"]
+        author_link = author["sameAs"]
+        metadata = {
+            "headline": headline,
+            "author": author_name,
+            "author_link": author_link,
+            "date_updated": datestr,
+        }
+
+        return metadata
+
+    def get_content_quint(self, driver):
+        content = {
+            "text": [],
+            "video": [],
+            "image": [],
+            "tweet": [],
+            "facebook": [],
+            "instagram": [],
+        }
+
+        # facebook
+        facebook = driver.find_elements_by_xpath(
+            '//div[@class="story-card"]//div[contains(@class,"fb-post")]//iframe[@src]'
+        )
+        for f in facebook:
+            content["facebook"].append(f.get_attribute("src"))
+
+        # videos
+        videos = driver.find_elements_by_xpath(
+            '//div[@class="story-card"]//iframe[@src]'
+        )
+        for v in videos:
+            content["video"].append(v.get_attribute("src"))
+
+        # images
+        images = driver.find_elements_by_xpath(
+            '//div[@class="story-article__content__element--image"]/figure/img'
+        )
+        for i in images:
+            content["image"].append("https:" + i.get_attribute("data-src"))
+
+        body_elements = driver.find_elements_by_xpath('//div[@class="story-card"]//p')
+        for i, x in enumerate(body_elements):
+            text = x.text
+            if text:
+                content["text"].append(text)
+
+        return content
+
+    def get_post_quint(
+        self,
+        page_url: str,
+        post_file_path: str,
+        langs: list = [],
+        domain: str = None,
+        body_div: str = None,
+        img_link: str = None,
+        header_div: str = None,
+        log_adapter=None,
+    ):
+        # from a page url, get a post dict ready for upload to mongo
+        self.log_adapter = log_adapter
+        tree = self.get_tree(post_file_path)
+        metadata = self.get_metadata_quint(tree)
+        log_adapter.info(f"test 7")
+        driver = utils.setup_driver()
+        log_adapter.info(f"test 8")
+        driver = utils.get_driver(page_url, driver, wait_time=3)
+        log_adapter.info(f"test 9")
+        content = self.get_content_quint(driver)
+        log_adapter.info(f"test 10")
+
+        # fields
+        post_id = uuid.uuid4().hex
+        # uniform date format
+        now_date = date.today().strftime("%B %d, %Y")
+        now_date_utc = datetime.utcnow()
+        date_updated = metadata["date_updated"]
+        date_updated_utc = datetime.strptime(date_updated, "%B %d, %Y")
+
+        author = {"name": metadata["author"], "link": metadata["author_link"]}
+
+        docs = []
+        for k, v in content.items():
+            if not v:  # empty list
+                continue
+            if k == "text":
+                content = "\n".join(v)
+                doc = db.get_doc_schema(
+                    post_id=post_id,
+                    domain=domain,
+                    orig_url=page_url,
+                    possible_lang=langs,
+                    media_type=k,
+                    content=content,
+                    now_date=now_date,
+                    now_date_utc=now_date_utc,
+                )
+                docs.append(doc)
+            else:
+                content = None
+                for url in v:
+                    doc = db.get_doc_schema(
+                        post_id=post_id,
+                        domain=domain,
+                        orig_url=page_url,
+                        possible_lang=langs,
+                        media_type=k,
+                        content=content,
+                        now_date=now_date,
+                        now_date_utc=now_date_utc,
+                    )
+                    docs.append(doc)
+
+        post = db.get_story_schema(
+            post_id=post_id,
+            post_url=page_url,
+            domain=domain,
+            headline=metadata["headline"],
+            date_accessed=now_date,
+            date_accessed_utc=now_date_utc,
+            date_updated=date_updated,
+            date_updated_utc=date_updated_utc,
+            author=author,
+            docs=docs,
+        )
+
+        return post
+
+    # ================ QUINT HELPER FUNCTIONS END ====================
 
     # ================ ALTNEWS HELPER FUNCTIONS BEGIN ====================
 

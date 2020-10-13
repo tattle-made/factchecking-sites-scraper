@@ -89,7 +89,7 @@ class Scraper:
             # delete file
             os.remove(self.crawler_out_file_path)
 
-        time_last_scrape = utils.get_last_scrape_time(self.mode, self.crawler_url)
+        time_last_scrape = utils.get_last_crawl_time(self.mode, self.crawler_url)
 
         crawl = crawler.Crawler(
             log_adapter,
@@ -122,18 +122,20 @@ class Scraper:
                     url_list = crawl.get_new_urls(url_list)
                     crawl.save_urls(url_list)
                     crawl.update_log(len(url_list))
+                    utils.save_crawl_time(self.crawler_url)
                     log_adapter.info(f"{self.crawler_url} crawl succeeded!")
         else:
-            log_adapter.info("Crawling since last crawl date %", time_last_scrape)
+            log_adapter.info(f"Crawling since last crawl date {time_last_scrape}")
             url_list = getattr(crawl, self.get_links_fn)(
                 self.scrape_from, self.if_sleep
             )
             if len(url_list) == 0:
-                log_adapter.info("No new URLs in %", self.crawler_url)
+                log_adapter.info(f"No new URLs in {self.crawler_url}")
             else:
                 url_list = crawl.get_new_urls(url_list)
                 crawl.save_urls(url_list)
                 crawl.update_log(len(url_list))
+                utils.save_crawl_time(self.crawler_url)
                 log_adapter.info(f"{self.crawler_url} crawl succeeded!")
 
         return None
@@ -227,8 +229,10 @@ class Scraper:
                 file_name = article_dl_out_dict[url]
                 # NOTE: this should match path of self.article_dl_out_file_path
                 file_path = os.path.join(constants.TEMP_PIPELINE_FILEPATH, file_name)
+                log_adapter.debug(f"test 1")
 
                 get_post = getattr(parser, self.get_post_fn)
+                log_adapter.debug(f"test 2")
 
                 post = get_post(
                     url,
@@ -240,8 +244,10 @@ class Scraper:
                     header_div=self.header_div,
                     log_adapter=log_adapter,
                 )
+                log_adapter.debug(f"test 3")
 
                 coll.insert_one(post)
+                log_adapter.debug(f"test 4")
 
             except Exception as e:
                 log_adapter.info(f"Failed: {url}: {e}")
@@ -269,10 +275,10 @@ class Scraper:
         return
 
 
-site = "altnews.in/hindi"
+site = "thequint.com"
 scraper = Scraper(
     crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="11.10.2020"
 )
-scraper.crawler()
-scraper.article_downloader()
+# scraper.crawler()
+# scraper.article_downloader()
 scraper.article_parser()
