@@ -50,6 +50,9 @@ SCRAPING_DB_COLL_STORIES = "stories"
 # times to retry downloading article
 RETRY_COUNT = 3
 
+# crawl page count
+CRAWL_PAGE_COUNT = 10
+
 # sites config
 SITES = {
     "altnews.in": {
@@ -105,24 +108,32 @@ SITES = {
         "langs": ["hindi"],
         "domain": "vishvasnews.com/hindi",
         "body_div": "div[@class='lhs-area']",
+        "getLinks": "get_historical_links_vishvasnews",
+        "getPost": "get_post_vishvasnews",
     },
     "vishvasnews.com/english": {
         "url": "https://www.vishvasnews.com/english",
         "langs": ["english"],
         "domain": "vishvasnews.com/english",
         "body_div": "div[@class='lhs-area']",
+        "getLinks": "get_historical_links_vishvasnews",
+        "getPost": "get_post_vishvasnews",
     },
     "vishvasnews.com/punjabi": {
         "url": "https://www.vishvasnews.com/punjabi",
         "langs": ["punjabi"],
         "domain": "vishvasnews.com/punjabi",
         "body_div": "div[@class='lhs-area']",
+        "getLinks": "get_historical_links_vishvasnews",
+        "getPost": "get_post_vishvasnews",
     },
     "vishvasnews.com/assamese": {
         "url": "https://www.vishvasnews.com/assamese",
         "langs": ["assamese"],
         "domain": "vishvasnews.com/assamese",
         "body_div": "div[@class='lhs-area']",
+        "getLinks": "get_historical_links_vishvasnews",
+        "getPost": "get_post_vishvasnews",
     },
     "thequint.com": {
         "url": "https://www.thequint.com/news/webqoof",

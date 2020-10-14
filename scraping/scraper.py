@@ -229,10 +229,8 @@ class Scraper:
                 file_name = article_dl_out_dict[url]
                 # NOTE: this should match path of self.article_dl_out_file_path
                 file_path = os.path.join(constants.TEMP_PIPELINE_FILEPATH, file_name)
-                log_adapter.debug(f"test 1")
 
                 get_post = getattr(parser, self.get_post_fn)
-                log_adapter.debug(f"test 2")
 
                 post = get_post(
                     url,
@@ -244,10 +242,8 @@ class Scraper:
                     header_div=self.header_div,
                     log_adapter=log_adapter,
                 )
-                log_adapter.debug(f"test 3")
 
                 coll.insert_one(post)
-                log_adapter.debug(f"test 4")
 
             except Exception as e:
                 log_adapter.info(f"Failed: {url}: {e}")
@@ -275,10 +271,15 @@ class Scraper:
         return
 
 
-site = "thequint.com"
+site = "vishvasnews.com/assamese"
+# "vishvasnews.com/hindi"
+# "vishvasnews.com/english"
+# "vishvasnews.com/punjabi"
+# "vishvasnews.com/assamese"
 scraper = Scraper(
-    crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="11.10.2020"
+    crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="13.10.2020"
 )
 # scraper.crawler()
 # scraper.article_downloader()
-scraper.article_parser()
+# scraper.article_parser()
+scraper.embedded_media_downloader()

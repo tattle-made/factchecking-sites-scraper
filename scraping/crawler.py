@@ -115,6 +115,59 @@ class Crawler:
 
         return day_count
 
+    # ======================== VISHVASNEWS HELPER FUNCTIONS BEGIN ========================
+
+    def get_historical_links_vishvasnews(
+        self, scrape_date: int, if_sleep: bool = True
+    ) -> list:
+        # NOTE: need to run this with a GUI session
+        # lang = ['assamese', 'english', 'hindi', 'urdu', 'punjabi']
+
+        driver = utils.setup_driver()
+        driver = utils.get_driver(self.crawler_url, driver)
+
+        count = 0
+        more_posts_link = driver.find_elements_by_xpath('//div[@class="nav-links"]/a')[
+            0
+        ]
+
+        articles = None
+        # TODO: remove page count once crawling by date implemented
+        while True and count < constants.CRAWL_PAGE_COUNT:
+            driver.execute_script("arguments[0].scrollIntoView();", more_posts_link)
+
+            articles = driver.find_elements_by_xpath("//div/h3/a")
+            print(len(set(articles)))
+
+            try:
+                more_posts_link.click()
+                print(count, " clicked!")
+                count += 1
+            except Exception:
+                break
+
+            if if_sleep:
+                sleep(0.5)
+
+            try:
+                more_posts_link = driver.find_elements_by_xpath(
+                    '//div[@class="nav-links"]/a'
+                )[0]
+            except Exception as e:
+                print(f"Failed: no more posts: {e}")
+                break
+
+        links = []
+        for a in set(articles):
+            links.append(a.get_attribute("href"))
+            links = list(set(links))
+
+        driver.close()
+
+        return links
+
+    # ======================== VISHVASNEWS HELPER FUNCTIONS END ========================
+
     # ======================== QUINT HELPER FUNCTIONS BEGIN ========================
 
     def get_historical_links_quint(
@@ -123,11 +176,10 @@ class Crawler:
         # get story links based on url and page range
         url_list = []
 
-        # TODO: remove page_count once crawling by date implemented
+        # TODO: remove page count once crawling by date implemented
         # day_count = self.get_scrape_days(scrape_date)
-        page_count = 2
 
-        for page in tqdm(range(page_count), desc="pages: "):
+        for page in tqdm(range(constants.CRAWL_PAGE_COUNT), desc="pages: "):
             page_url = f"{self.crawler_url}/{page}"
             tree = utils.get_tree(page_url)
             if if_sleep:
@@ -187,13 +239,12 @@ class Crawler:
 
         # TODO: remove page_count once crawling by date implemented
         # day_count = self.get_scrape_days(scrape_date)
-        page_count = 2
 
         # infinite scrolling
         driver = utils.setup_driver()
         driver = utils.get_driver(self.crawler_url, driver)
         # NOTE: "Recent Posts" start nearly 1 page down, hence scroll a page more
-        utils.infinite_scroll(driver, page_count, if_sleep)
+        utils.infinite_scroll(driver, constants.CRAWL_PAGE_COUNT, if_sleep)
         url_list = self.get_post_links_from_page_altnews(driver.page_source)
 
         """
