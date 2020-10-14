@@ -629,7 +629,7 @@ def get_post_afp(
                 doc = getDocSchema(
                     postID=postID,
                     domain=domain,
-                    origURL=origURL,
+                    origURL=url,
                     possibleLangs=langs,
                     mediaType=k,
                     content=content,
@@ -721,7 +721,7 @@ def get_post_digiteye_kannada(
                 doc = getDocSchema(
                     postID=postID,
                     domain=domain,
-                    origURL=origURL,
+                    origURL=url,
                     possibleLangs=langs,
                     mediaType=k,
                     content=content,
@@ -837,7 +837,7 @@ def get_post_digiteye(
                 doc = getDocSchema(
                     postID=postID,
                     domain=domain,
-                    origURL=origURL,
+                    origURL=url,
                     possibleLangs=langs,
                     mediaType=k,
                     content=content,
@@ -975,7 +975,7 @@ def get_post_altnews(
                 doc = getDocSchema(
                     postID=postID,
                     domain=domain,
-                    origURL=origURL,
+                    origURL=url,
                     possibleLangs=langs,
                     mediaType=k,
                     content=content,
@@ -1177,7 +1177,7 @@ def get_post_boomlive(
                 doc = getDocSchema(
                     postID=postID,
                     domain=domain,
-                    origURL=origURL,
+                    origURL=url,
                     possibleLangs=langs,
                     mediaType=k,
                     content=content,
@@ -1352,7 +1352,7 @@ def get_post_factly(
                 doc = getDocSchema(
                     postID=postID,
                     domain=domain,
-                    origURL=origURL,
+                    origURL=url,
                     possibleLangs=langs,
                     mediaType=k,
                     content=content,
@@ -1870,7 +1870,7 @@ def get_post_vishvasnews(
                 doc = getDocSchema(
                     postID=postID,
                     domain=domain,
-                    origURL=origURL,
+                    origURL=url,
                     possibleLangs=langs,
                     mediaType=k,
                     content=content,
@@ -2258,7 +2258,7 @@ def get_post_indiatoday(
                 doc = getDocSchema(
                     postID=postID,
                     domain=domain,
-                    origURL=origURL,
+                    origURL=url,
                     possibleLangs=langs,
                     mediaType=k,
                     content=content,

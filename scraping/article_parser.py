@@ -92,7 +92,7 @@ class ArticleParser:
         # video youtube
         video_yt = tree.xpath(f"//{body_div}//iframe")
         for v in video_yt:
-            content["video"].append(v.get("src"))
+            content["video"].append(v.get("data-src"))
         # video fb
         fb = tree.xpath(
             '//figure[contains(@class, "wp-block-embed-facebook")]//div[@class="fb-video"]'
@@ -190,7 +190,7 @@ class ArticleParser:
                     doc = db.get_doc_schema(
                         post_id=post_id,
                         domain=domain,
-                        orig_url=page_url,
+                        orig_url=url,
                         possible_lang=langs,
                         media_type=k,
                         content=content,
@@ -327,7 +327,7 @@ class ArticleParser:
                     doc = db.get_doc_schema(
                         post_id=post_id,
                         domain=domain,
-                        orig_url=page_url,
+                        orig_url=url,
                         possible_lang=langs,
                         media_type=k,
                         content=content,
@@ -453,7 +453,7 @@ class ArticleParser:
                     doc = db.get_doc_schema(
                         post_id=post_id,
                         domain=domain,
-                        orig_url=page_url,
+                        orig_url=url,
                         possible_lang=langs,
                         media_type=k,
                         content=content,

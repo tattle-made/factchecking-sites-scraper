@@ -10,9 +10,12 @@ DIR_UP_PATH = ".."
 SCRAPE_TIME_FILENAME = "scrape_time.json"
 CRAWLED_URLS_BEGIN_FILENAME = "crawled_urls_"
 DOWNLOADED_ARTICLES_BEGIN_FILENAME = "downloaded_articles_"
+PARSED_ARTICLES_BEGIN_FILENAME = "parsed_articles_"
+MEDIA_DL_IMAGE_FILENAMES = "media_dl_image_filename.pkl"
 
 CRAWLED_URLS_FILE_EXTENSION = ".pkl"
 DOWNLOADED_ARTICLES_FILE_EXTENSION = ".pkl"
+PARSED_ARTICLES_FILE_EXTENSION = ".pkl"
 
 # other dir
 TEMP_PIPELINE_OUTPUT = "temp_pipeline_output"
@@ -21,11 +24,15 @@ LOGS_DIR = "logs"
 # data dir
 DATA_DIR = "data"
 DATA_RAW_DIR = "raw"
+IMAGE_DOWNLOAD_DIR = "image_dl"
+VIDEO_DOWNLOAD_DIR = "video_dl"
 
 # paths
 SCRAPE_TIME_FILEPATH = os.path.join(DIR_UP_PATH, SCRAPE_TIME_FILENAME)
 TEMP_PIPELINE_FILEPATH = os.path.join(DIR_UP_PATH, TEMP_PIPELINE_OUTPUT)
 DATA_RAW_FILEPATH = os.path.join(DIR_UP_PATH, DATA_DIR, DATA_RAW_DIR)
+IMAGE_DOWNLOAD_FILEPATH = os.path.join(DATA_RAW_FILEPATH, IMAGE_DOWNLOAD_DIR)
+VIDEO_DOWNLOAD_FILEPATH = os.path.join(DATA_RAW_FILEPATH, VIDEO_DOWNLOAD_DIR)
 
 # log tags
 LOG_TAG_CRAWLER = "CRAWLER"
@@ -42,6 +49,9 @@ MODE_INVALID = "mode_invalid"
 
 # log file name
 LOG_FILE = "scraper.log"
+
+# parse success pipeline temp file tag
+PARSE_SUCCESS = "Parse Success!"
 
 # MongoDB
 SCRAPING_DB_DEV = "factcheck_sites_dev"
