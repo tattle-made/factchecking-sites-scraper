@@ -61,8 +61,7 @@ SCRAPING_DB_COLL_STORIES = "stories"
 RETRY_COUNT = 3
 
 # crawl page count
-# TODO:
-CRAWL_PAGE_COUNT = 1
+CRAWL_PAGE_COUNT = 10
 
 # s3 data uploader
 BUCKET = "tattle-story-scraper"

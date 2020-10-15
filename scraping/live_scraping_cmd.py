@@ -163,7 +163,7 @@ if site not in sites.keys():
 bucket = "tattle-logs"
 region_name = "ap-south-1"
 db = get_db()
-# s3 = aws_connection()
+s3 = aws_connection()
 
 # setup logs
 today = date.today().strftime("%Y%m%d")
@@ -209,6 +209,5 @@ scraping_site_links(
 ###############################################################
 # upload csv
 # ContentType = 'text/plain'
-# TODO
-# s3.upload_file(csvLog, bucket, csvLog)
-# s3.upload_file(csvErr, bucket, csvErr)
+s3.upload_file(csvLog, bucket, csvLog)
+s3.upload_file(csvErr, bucket, csvErr)

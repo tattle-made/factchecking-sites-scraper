@@ -250,7 +250,6 @@ class ArticleParser:
         }
 
         # videos
-        # TODO: test
         videos = tree.xpath(
             '//div[@class="story-element story-element-youtube-video"]//iframe[@src]'
         )
