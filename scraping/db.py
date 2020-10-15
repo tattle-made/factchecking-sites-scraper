@@ -56,6 +56,9 @@ def get_story_schema(
     date_updated=None,
     date_updated_utc=None,
     author=None,
+    s3_url=None,
+    post_category=None,
+    claims_review=None,
     docs=[],
 ):
     # schema for a news story/article
@@ -72,7 +75,24 @@ def get_story_schema(
         "date_updated": date_updated,  # later of date published/updated
         "date_updated_UTC": date_updated_utc,  # later of date published/updated
         "author": author,
+        "s3URL": s3_url,
+        "post_category": post_category,
+        "claims_review": claims_review,
         "docs": docs,
     }
 
     return post
+
+
+def update_coll_schema_change(key):
+    """
+    Updates all documents in collection when new key is added
+
+    Args:
+        key: key added to collection schema
+
+    Returns: None
+
+    """
+    # TODO: added s3url (article), claims_review, post_category
+    return None

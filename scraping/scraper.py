@@ -12,6 +12,7 @@ import db
 from article_downloader import ArticleDownloader
 from article_parser import ArticleParser
 from embedded_media_downloader import EmbeddedMediaDownloader
+from data_uploader import DataUploader
 
 
 class Scraper:
@@ -58,37 +59,37 @@ class Scraper:
             f.write(f'{"link,status,error"}')
 
         # crawler pipeline out files
-        self.crawler_out_file_name = f"{constants.CRAWLED_URLS_BEGIN_FILENAME}{self.site_str}{constants.CRAWLED_URLS_FILE_EXTENSION}"
-        self.crawler_out_file_path = os.path.join(
-            constants.TEMP_PIPELINE_FILEPATH, self.crawler_out_file_name
+        self.crawler_temp_out_file_name = f"{constants.CRAWLED_URLS_BEGIN_FILENAME}{self.site_str}{constants.CRAWLED_URLS_FILE_EXTENSION}"
+        self.crawler_temp_out_file_path = os.path.join(
+            constants.TEMP_PIPELINE_FILEPATH, self.crawler_temp_out_file_name
         )
 
         # article downloader pipeline out files
         self.article_dl_out_folder = os.path.join(
             constants.DATA_RAW_FILEPATH, self.site_str
         )
-        self.article_dl_out_file_name = f"{constants.DOWNLOADED_ARTICLES_BEGIN_FILENAME}{self.site_str}{constants.DOWNLOADED_ARTICLES_FILE_EXTENSION}"
-        self.article_dl_out_file_path = os.path.join(
-            constants.TEMP_PIPELINE_FILEPATH, self.article_dl_out_file_name
+        self.article_dl_temp_out_file_name = f"{constants.DOWNLOADED_ARTICLES_BEGIN_FILENAME}{self.site_str}{constants.DOWNLOADED_ARTICLES_FILE_EXTENSION}"
+        self.article_dl_temp_out_file_path = os.path.join(
+            constants.TEMP_PIPELINE_FILEPATH, self.article_dl_temp_out_file_name
         )
 
         # parser pipeline out files
-        self.article_parser_out_file_name = f"{constants.PARSED_ARTICLES_BEGIN_FILENAME}{self.site_str}{constants.PARSED_ARTICLES_FILE_EXTENSION}"
-        self.article_parser_out_file_path = os.path.join(
-            constants.TEMP_PIPELINE_FILEPATH, self.article_parser_out_file_name
+        self.article_parser_temp_out_file_name = f"{constants.PARSED_ARTICLES_BEGIN_FILENAME}{self.site_str}{constants.PARSED_ARTICLES_FILE_EXTENSION}"
+        self.article_parser_temp_out_file_path = os.path.join(
+            constants.TEMP_PIPELINE_FILEPATH, self.article_parser_temp_out_file_name
         )
 
-    def crawler(self) -> None:
+    def crawler(self) -> bool:
         """
         Crawl site and get list of urls to scrape
 
-        Returns: None
+        Returns: True if success, False otherwise
 
         """
         entity = constants.LOG_TAG_CRAWLER
         log_adapter = utils.CustomAdapter(self.logger, {"entity": entity})
 
-        if os.path.exists(self.crawler_out_file_path):
+        if os.path.exists(self.crawler_temp_out_file_path):
             # TODO: Pipeline failure. Load snapshot and run pipeline
             log_adapter.info(
                 "Previous pipeline failed. Processing previous pipeline first..."
@@ -96,7 +97,7 @@ class Scraper:
             log_adapter.debug(
                 "Snapshot processing not yet implemented. First run pipeline from article downloader!"
             )
-            return None
+            return False
 
         log_adapter.info(f"Crawling {self.crawler_url} ...")
 
@@ -105,7 +106,7 @@ class Scraper:
         crawl = crawler.Crawler(
             log_adapter,
             self.mode,
-            self.crawler_out_file_path,
+            self.crawler_temp_out_file_path,
             self.total_links_log,
             self.crawler_url,
             self.domain,
@@ -113,7 +114,7 @@ class Scraper:
 
         if time_last_scrape == constants.MODE_INVALID:
             log_adapter.error("Invalid scraping mode: %", self.mode)
-            return None
+            return False
         elif time_last_scrape is None:
             # url has never been scraped
             log_adapter.info(f"{self.crawler_url} has never been crawled")
@@ -121,7 +122,7 @@ class Scraper:
                 log_adapter.error(
                     "Please provide a past date until (and including) which to crawl (dd.mm.yyyy)!"
                 )
-                return None
+                return False
             else:
                 log_adapter.info(f"Crawling from date {self.scrape_from}")
                 url_list = getattr(crawl, self.get_links_fn)(
@@ -151,24 +152,24 @@ class Scraper:
 
         # TODO: save snapshot (class-level variables?) in the event of pipeline failure to process saved self.article_dl_out_file_path
 
-        return None
+        return True
 
-    def article_downloader(self) -> None:
+    def article_downloader(self) -> bool:
         """
         Download and save all urls crawled for site
 
-        Returns: None
+        Returns: True if success, False otherwise
 
         """
         entity = constants.LOG_TAG_ARTICLE_DOWNLOADER
         log_adapter = utils.CustomAdapter(self.logger, {"entity": entity})
 
-        if os.path.exists(self.article_dl_out_file_path):
+        if os.path.exists(self.article_dl_temp_out_file_path):
             # TODO: Pipeline failure. Load snapshot and run pipeline
             log_adapter.info(
                 "Previous pipeline failed. Processing previous pipeline first..."
             )
-            if os.path.exists(self.article_parser_out_file_path):
+            if os.path.exists(self.article_parser_temp_out_file_path):
                 log_adapter.info(
                     "Snapshot processing not yet implemented. Previous parsing was successful! First run the pipeline from embedded media downloader."
                 )
@@ -176,18 +177,18 @@ class Scraper:
                 log_adapter.info(
                     "Snapshot processing not yet implemented. Previous parsing was NOT successful! First run the pipeline from article parser."
                 )
-            return None
+            return False
 
-        if not os.path.exists(self.crawler_out_file_path):
+        if not os.path.exists(self.crawler_temp_out_file_path):
             log_adapter.error("Crawler output file does not exist! Run crawler first.")
-            return None
+            return False
 
         if not os.path.exists(self.article_dl_out_folder):
             os.makedirs(self.article_dl_out_folder)
 
         article_dl_out_dict = {}
 
-        with open(self.crawler_out_file_path, "rb") as fp:
+        with open(self.crawler_temp_out_file_path, "rb") as fp:
             url_list = pickle.load(fp)
 
         scraping_url = utils.get_scraping_url(self.mode)
@@ -212,29 +213,29 @@ class Scraper:
                 with open(self.err_links_log, "a") as f:
                     f.write(f"\n{url},failed,link in db")
 
-        with open(self.article_dl_out_file_path, "wb") as fp:
+        with open(self.article_dl_temp_out_file_path, "wb") as fp:
             pickle.dump(article_dl_out_dict, fp)
 
         # NOTE: crawler output files no longer needed
-        os.remove(self.crawler_out_file_path)
+        os.remove(self.crawler_temp_out_file_path)
 
         # TODO: save snapshot (class-level variables?) in the event of pipeline failure to process saved self.article_dl_out_file_path
 
         log_adapter.info(f"{self.domain} article downloads succeeded!")
 
-        return None
+        return True
 
-    def article_parser(self) -> None:
+    def article_parser(self) -> bool:
         """
         Parse downloaded posts
 
-        Returns: None
+        Returns: True if success, False otherwise
 
         """
         entity = constants.LOG_TAG_ARTICLE_PARSER
         log_adapter = utils.CustomAdapter(self.logger, {"entity": entity})
 
-        with open(self.article_dl_out_file_path, "rb") as fp:
+        with open(self.article_dl_temp_out_file_path, "rb") as fp:
             article_dl_out_dict = pickle.load(fp)
 
         parser = ArticleParser()
@@ -249,9 +250,7 @@ class Scraper:
             try:
                 log_adapter.info(f"Parsing: {url}")
 
-                file_name = article_dl_out_dict[url]
-                # NOTE: this should match path of self.article_dl_out_file_path
-                file_path = os.path.join(constants.TEMP_PIPELINE_FILEPATH, file_name)
+                file_path = article_dl_out_dict[url]
 
                 get_post = getattr(parser, self.get_post_fn)
 
@@ -276,22 +275,24 @@ class Scraper:
         # NOTE: WE STILL NEED self.article_dl_out_file_path - DO NOT DELETE
         # TODO: save snapshot (class-level variables?) in the event of pipeline failure to process saved self.article_dl_out_file_path
 
-        with open(self.article_parser_out_file_path, "wb") as fp:
+        with open(self.article_parser_temp_out_file_path, "wb") as fp:
             pickle.dump(constants.PARSE_SUCCESS, fp)
 
         log_adapter.info(f"{self.domain} article parsing succeeded!")
 
-        return None
+        return True
 
-    def embedded_media_downloader(self):
+    def embedded_media_downloader(self) -> bool:
         """
         Download embedded media from posts
 
-        Returns: None
+        Returns: True if success, False otherwise
 
         """
         entity = constants.LOG_TAG_EMBEDDED_MEDIA_DOWNLOADER
         log_adapter = utils.CustomAdapter(self.logger, {"entity": entity})
+
+        log_adapter.info(f"Downloading media...")
 
         scraping_url = utils.get_scraping_url(self.mode)
         # TODO: dev vs. prod db
@@ -310,22 +311,41 @@ class Scraper:
 
         # TODO: save snapshot (class-level variables?) in the event of pipeline failure to process saved self.article_dl_out_file_path
 
-        return None
+        log_adapter.info(f"Media download succeeded!")
 
-    def data_uploader(self):
-        # TODO:
-        # entity = constants.LOG_TAG_DATA_UPOADER
-        # log_adapter = utils.CustomAdapter(self.logger, {"entity": entity})
-        # TODO:
-        #   - update in db - s3raw url after downloaded article upload
-        #       - delete self.article_dl_out_file_path
-        #       - delete self.article_parser_out_file_path
-        #   - update in db - s3URL url after downloaded media upload
-        #   - delete self.dl_image_out_file_path + video out file path
-        return
+        return True
+
+    def data_uploader(self) -> bool:
+        """
+        Upload data to s3 storage
+
+        Returns: True if success, False otherwise
+
+        """
+        entity = constants.LOG_TAG_DATA_UPOADER
+        log_adapter = utils.CustomAdapter(self.logger, {"entity": entity})
+
+        upload = DataUploader(self.mode, log_adapter)
+
+        upload.upload_articles(self.article_dl_temp_out_file_path)
+        os.remove(self.article_dl_temp_out_file_path)
+        os.remove(self.article_parser_temp_out_file_path)
+
+        upload.upload_media()
+
+        scraping_url = utils.get_scraping_url(self.mode)
+        # TODO: dev vs. prod db
+        coll = db.get_collection(
+            scraping_url, constants.SCRAPING_DB_DEV, constants.SCRAPING_DB_COLL_STORIES
+        )
+        media_dl = EmbeddedMediaDownloader(coll, log_adapter)
+        os.remove(media_dl.dl_image_out_file_path)
+        # TODO: remove videos++ file paths after upload
+
+        return True
 
 
-site = "altnews.in"
+site = "altnews.in/hindi"
 # "altnews.in"
 # "altnews.in/hindi"
 # "thequint.com"
@@ -336,7 +356,12 @@ site = "altnews.in"
 scraper = Scraper(
     crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="13.10.2020"
 )
-# scraper.crawler()
-# scraper.article_downloader()
-# scraper.article_parser()
-scraper.embedded_media_downloader()
+result = scraper.crawler()
+if result:
+    result = scraper.article_downloader()
+    if result:
+        result = scraper.article_parser()
+        if result:
+            result = scraper.embedded_media_downloader()
+            if result:
+                result = scraper.data_uploader()

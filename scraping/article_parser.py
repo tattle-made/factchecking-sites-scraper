@@ -209,6 +209,9 @@ class ArticleParser:
             date_updated=date_updated,
             date_updated_utc=date_updated_utc,
             author=author,
+            s3_url=None,
+            post_category=None,
+            claims_review=None,
             docs=docs,
         )
 
@@ -346,6 +349,9 @@ class ArticleParser:
             date_updated=date_updated,
             date_updated_utc=date_updated_utc,
             author=author,
+            s3_url=None,
+            post_category=None,
+            claims_review=None,
             docs=docs,
         )
 
@@ -472,6 +478,9 @@ class ArticleParser:
             date_updated=date_updated,
             date_updated_utc=date_updated_utc,
             author=author,
+            s3_url=None,
+            post_category=None,
+            claims_review=None,
             docs=docs,
         )
 

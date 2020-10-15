@@ -81,7 +81,7 @@ class EmbeddedMediaDownloader:
                 filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
 
                 # Save filenames for upload step
-                filename_dict[url] = filename
+                filename_dict[url] = [doc, filename]
 
                 # save
                 image.save(filepath)
