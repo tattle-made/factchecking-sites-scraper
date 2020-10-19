@@ -68,27 +68,31 @@ class DataUploader:
             filename = filename_dict[media_url][1]
 
             content_type = guess_type(filename)[0]
+            if not content_type:
+                # content type could not be determined
+                content_type = constants.UNK_CONTENT_TYPE
             s3_filename = str(uuid4())
             # NOTE: this should match the path in EmbeddedMediaDownloader.save_images()
             filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
 
-            # upload
-            s3.upload_file(
-                filepath,
-                constants.BUCKET,
-                s3_filename,
-                ExtraArgs={"ContentType": content_type},
-            )
-            s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{s3_filename}"
+            if os.path.exists(filepath):
+                # data not previously uploaded
+                s3.upload_file(
+                    filepath,
+                    constants.BUCKET,
+                    s3_filename,
+                    ExtraArgs={"ContentType": content_type},
+                )
+                s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{s3_filename}"
 
-            os.remove(filepath)
+                # update domain to something else
+                coll.update_one(
+                    {"postID": doc["postID"]},
+                    {"$set": {"docs.$[elem].s3URL": s3_url}},
+                    array_filters=[{"elem.doc_id": doc["doc_id"]}],
+                )
 
-            # update domain to something else
-            coll.update_one(
-                {"postID": doc["postID"]},
-                {"$set": {"docs.$[elem].s3URL": s3_url}},
-                array_filters=[{"elem.doc_id": doc["doc_id"]}],
-            )
+                os.remove(filepath)
 
         self.log_adapter.info(f"Media upload succeeded!")
 
@@ -111,19 +115,21 @@ class DataUploader:
         for article_url in tqdm(filepath_dict, desc="Uploading: "):
             filepath = filepath_dict[article_url]
 
-            s3_filename = str(uuid4())
+            if os.path.exists(filepath):
+                # data not previously uploaded
+                s3_filename = str(uuid4())
 
-            # upload
-            s3.upload_file(filepath, constants.BUCKET, s3_filename, ExtraArgs={})
-            s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{s3_filename}"
+                # upload
+                s3.upload_file(filepath, constants.BUCKET, s3_filename, ExtraArgs={})
+                s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{s3_filename}"
 
-            os.remove(filepath)
+                os.remove(filepath)
 
-            # update domain to something else
-            coll.update_one(
-                {"postURL": article_url},
-                {"$set": {"s3URL": s3_url}},
-            )
+                # update domain to something else
+                coll.update_one(
+                    {"postURL": article_url},
+                    {"$set": {"s3URL": s3_url}},
+                )
 
         self.log_adapter.info(f"Articles upload succeeded!")
 

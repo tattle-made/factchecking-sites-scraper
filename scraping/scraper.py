@@ -94,7 +94,7 @@ class Scraper:
             log_adapter.info(
                 "Previous pipeline failed. Processing previous pipeline first..."
             )
-            log_adapter.debug(
+            log_adapter.error(
                 "Snapshot processing not yet implemented. First run pipeline from article downloader!"
             )
             return False
@@ -170,11 +170,11 @@ class Scraper:
                 "Previous pipeline failed. Processing previous pipeline first..."
             )
             if os.path.exists(self.article_parser_temp_out_file_path):
-                log_adapter.info(
+                log_adapter.error(
                     "Snapshot processing not yet implemented. Previous parsing was successful! First run the pipeline from embedded media downloader."
                 )
             else:
-                log_adapter.info(
+                log_adapter.error(
                     "Snapshot processing not yet implemented. Previous parsing was NOT successful! First run the pipeline from article parser."
                 )
             return False
@@ -234,6 +234,27 @@ class Scraper:
         """
         entity = constants.LOG_TAG_ARTICLE_PARSER
         log_adapter = utils.CustomAdapter(self.logger, {"entity": entity})
+
+        if os.path.exists(self.article_parser_temp_out_file_path):
+            # TODO: Pipeline failure. Load snapshot and run pipeline
+            log_adapter.info(
+                "Previous pipeline failed. Processing previous pipeline first..."
+            )
+            log_adapter.error(
+                "Snapshot processing not yet implemented. Previous parsing was successful! First run the pipeline from embedded media downloader."
+            )
+            return False
+
+        if not os.path.exists(self.article_dl_temp_out_file_path):
+            if not os.path.exists(self.crawler_temp_out_file_path):
+                log_adapter.error(
+                    "Crawler output file does not exist! Run crawler first."
+                )
+            else:
+                log_adapter.error(
+                    "Article downloader output file does not exist! Run article downloader first."
+                )
+            return False
 
         with open(self.article_dl_temp_out_file_path, "rb") as fp:
             article_dl_out_dict = pickle.load(fp)
@@ -303,7 +324,9 @@ class Scraper:
         media_dl = EmbeddedMediaDownloader(coll, log_adapter)
 
         query_images = media_dl.get_all_images()
-        media_dl.save_images(query_images)
+        res = media_dl.save_images(query_images)
+        if not res:
+            return False
 
         # TODO: enable video downloaded once decided whether it is appropriate to download videos
         # query_videos = media_dl.get_all_videos()
@@ -328,9 +351,6 @@ class Scraper:
         upload = DataUploader(self.mode, log_adapter)
 
         upload.upload_articles(self.article_dl_temp_out_file_path)
-        os.remove(self.article_dl_temp_out_file_path)
-        os.remove(self.article_parser_temp_out_file_path)
-
         upload.upload_media()
 
         scraping_url = utils.get_scraping_url(self.mode)
@@ -339,13 +359,21 @@ class Scraper:
             scraping_url, constants.SCRAPING_DB_DEV, constants.SCRAPING_DB_COLL_STORIES
         )
         media_dl = EmbeddedMediaDownloader(coll, log_adapter)
+
+        # delete temp files
+        os.remove(self.article_dl_temp_out_file_path)
+        os.remove(self.article_parser_temp_out_file_path)
         os.remove(media_dl.dl_image_out_file_path)
         # TODO: remove videos++ file paths after upload
 
         return True
 
 
-site = "altnews.in/hindi"
+# setup logger
+logger = utils.setup_logger(__name__)
+log_adapter = utils.CustomAdapter(logger, {"entity": "scraper"})
+
+site = "altnews.in"
 # "altnews.in"
 # "altnews.in/hindi"
 # "thequint.com"
@@ -354,7 +382,7 @@ site = "altnews.in/hindi"
 # "vishvasnews.com/punjabi"
 # "vishvasnews.com/assamese"
 scraper = Scraper(
-    crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="13.10.2020"
+    crawl_site=site, mode=constants.MODE_REMOTE, if_sleep=True, scrape_from="13.10.2020"
 )
 result = scraper.crawler()
 if result:
@@ -365,3 +393,13 @@ if result:
             result = scraper.embedded_media_downloader()
             if result:
                 result = scraper.data_uploader()
+                if not result:
+                    log_adapter.error("Data uploader failed!")
+            else:
+                log_adapter.error("Embedded media downloader failed!")
+        else:
+            log_adapter.error("Article parser failed!")
+    else:
+        log_adapter.error("Article downloader failed!")
+else:
+    log_adapter.error("Crawler failed!")

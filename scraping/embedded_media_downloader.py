@@ -39,11 +39,10 @@ class EmbeddedMediaDownloader:
             #         {"$sample": {"size": 10}},
         ]
         query = list(self.coll.aggregate(pipeline))
-        print(len(query))
 
         return query
 
-    def save_images(self, query_images: list) -> None:
+    def save_images(self, query_images: list) -> bool:
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
             "Content-Type": "text/html",
@@ -57,7 +56,7 @@ class EmbeddedMediaDownloader:
             self.log_adapter.debug(
                 "Snapshot processing not yet implemented. First run pipeline from data uploader!"
             )
-            return None
+            return False
 
         if not os.path.exists(constants.IMAGE_DOWNLOAD_FILEPATH):
             os.makedirs(constants.IMAGE_DOWNLOAD_FILEPATH)
@@ -70,21 +69,30 @@ class EmbeddedMediaDownloader:
                 sleep(1)
 
                 url = doc["url"]
-                r = requests.get(url, headers=headers)
-
-                image = Image.open(BytesIO(r.content))
 
                 # file params
-                filename = url.split("/")[-1]
+                filename = ""
+                if url.endswith("://"):
+                    # handle valid filename eg https://i0.wp.com/www.altnews.in/wp-content/uploads/2017/04/electrification-percentages.jpg?resize=696%2C141http://
+                    filename = url.split("/")[-3] + "//"
+                else:
+                    filename = url.split("/")[-1]
                 if "?" in filename:
                     filename = filename.split("?")[0]
                 filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
 
+                if os.path.exists(filepath):
+                    self.log_adapter.info(
+                        f"Skipping {filename} download. File already exists."
+                    )
+                else:
+                    r = requests.get(url, headers=headers)
+                    image = Image.open(BytesIO(r.content))
+                    # save
+                    image.save(filepath)
+
                 # Save filenames for upload step
                 filename_dict[url] = [doc, filename]
-
-                # save
-                image.save(filepath)
 
             except Exception as e:
                 self.log_adapter.error(f"Failed @{url}: {e}")
@@ -92,7 +100,7 @@ class EmbeddedMediaDownloader:
         with open(self.dl_image_out_file_path, "wb") as fp:
             pickle.dump(filename_dict, fp)
 
-        return None
+        return True
 
     def get_all_videos(self):
         # get all video docs

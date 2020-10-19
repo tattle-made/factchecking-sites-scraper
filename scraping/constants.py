@@ -63,6 +63,9 @@ RETRY_COUNT = 3
 # crawl page count
 CRAWL_PAGE_COUNT = 10
 
+# data uploader
+UNK_CONTENT_TYPE = "unk_content_type"
+
 # s3 data uploader
 BUCKET = "tattle-story-scraper"
 REGION_NAME = "ap-south-1"
