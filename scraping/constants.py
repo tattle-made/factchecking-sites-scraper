@@ -77,14 +77,12 @@ SITES = {
         "langs": ["english"],
         "domain": "altnews.in",
         "getLinks": "get_historical_links_altnews",
-        "getPost": "get_post_altnews",
     },
     "altnews.in/hindi": {
         "url": "https://www.altnews.in/hindi",
         "langs": ["hindi"],
         "domain": "altnews.in/hindi",
         "getLinks": "get_historical_links_altnews",
-        "getPost": "get_post_altnews",
     },
     "boomlive.in": {
         "url": "https://www.boomlive.in/fake-news",
@@ -126,7 +124,6 @@ SITES = {
         "domain": "vishvasnews.com/hindi",
         "body_div": "div[@class='lhs-area']",
         "getLinks": "get_historical_links_vishvasnews",
-        "getPost": "get_post_vishvasnews",
     },
     "vishvasnews.com/english": {
         "url": "https://www.vishvasnews.com/english",
@@ -134,7 +131,6 @@ SITES = {
         "domain": "vishvasnews.com/english",
         "body_div": "div[@class='lhs-area']",
         "getLinks": "get_historical_links_vishvasnews",
-        "getPost": "get_post_vishvasnews",
     },
     "vishvasnews.com/punjabi": {
         "url": "https://www.vishvasnews.com/punjabi",
@@ -142,7 +138,6 @@ SITES = {
         "domain": "vishvasnews.com/punjabi",
         "body_div": "div[@class='lhs-area']",
         "getLinks": "get_historical_links_vishvasnews",
-        "getPost": "get_post_vishvasnews",
     },
     "vishvasnews.com/assamese": {
         "url": "https://www.vishvasnews.com/assamese",
@@ -150,13 +145,11 @@ SITES = {
         "domain": "vishvasnews.com/assamese",
         "body_div": "div[@class='lhs-area']",
         "getLinks": "get_historical_links_vishvasnews",
-        "getPost": "get_post_vishvasnews",
     },
     "thequint.com": {
         "url": "https://www.thequint.com/news/webqoof",
         "langs": ["english"],
         "domain": "thequint.com",
         "getLinks": "get_historical_links_quint",
-        "getPost": "get_post_quint",
     },
 }

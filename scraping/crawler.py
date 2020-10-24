@@ -8,6 +8,12 @@ from tqdm import tqdm
 
 from lxml.html import fromstring
 
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions
+
 import db
 import constants
 import utils
@@ -127,23 +133,74 @@ class Crawler:
         driver = utils.get_driver(self.crawler_url, driver)
 
         count = 0
-        more_posts_link = driver.find_elements_by_xpath('//div[@class="nav-links"]/a')[
-            0
-        ]
+        cookie_accept_button = driver.find_elements_by_xpath(
+            "/html/body/div[11]/button"
+        )[0]
+
+        scraping_url = utils.get_scraping_url(self.mode)
+        coll = db.get_collection(
+            scraping_url, constants.SCRAPING_DB_DEV, constants.SCRAPING_DB_COLL_STORIES
+        )
+
+        # scroll to end of document to get cookie accept button
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        # wait for 5 seconds for cookie accept button to load
+        driver.implicitly_wait(5)
+        try:
+            cookie_accept_button.click()
+            self.log_adapter.info(f"Cookie accepted!")
+        except Exception as e:
+            self.log_adapter.warning(f"Error crawling vishvas news links: {e}")
 
         articles = None
+        do_crawl = True
+        more_posts_xpath = '//div[@class="nav-links"]/a'
         # TODO: remove page count once crawling by date implemented
-        while True and count < constants.CRAWL_PAGE_COUNT:
-            driver.execute_script("arguments[0].scrollIntoView();", more_posts_link)
+        while do_crawl and count < constants.CRAWL_PAGE_COUNT:
+
+            # wait until element loaded into view
+            ignored_exceptions = (
+                NoSuchElementException,
+                StaleElementReferenceException,
+            )
+            _ = WebDriverWait(driver, 0.5, ignored_exceptions=ignored_exceptions).until(
+                expected_conditions.presence_of_element_located(
+                    (By.XPATH, more_posts_xpath)
+                )
+            )
+
+            # load element every time for new page
+            more_posts_link = driver.find_elements_by_xpath(
+                '//div[@class="nav-links"]/a'
+            )[0]
+            coordinates_dict = more_posts_link.location_once_scrolled_into_view
+
+            # scroll to a little above element to prevent element being covered by
+            # <div class="top-strip"> (top bar) from the top
+            # and <div class="wpgdprc wpgdprc-consent-bar"> (cookie accept button) from the bottom
+            driver.execute_script(
+                "window.scrollTo({}, {});".format(
+                    coordinates_dict["x"], coordinates_dict["y"] - 40
+                )
+            )
+            # driver.execute_script("arguments[0].scrollIntoView();", more_posts_link)
 
             articles = driver.find_elements_by_xpath("//div/h3/a")
-            print(len(set(articles)))
+
+            for a in set(articles):
+                # stop scrolling if link in
+                link = a.get_attribute("href")
+                if coll.count_documents({"postURL": link}, {}):
+                    # post already in db - stop crawling
+                    self.log_adapter.info("Found older posts. Stopping crawl...")
+                    do_crawl = False
 
             try:
                 more_posts_link.click()
-                print(count, " clicked!")
+                self.log_adapter.info(f"{count}: clicked!")
                 count += 1
-            except Exception:
+            except Exception as e:
+                self.log_adapter.warning(f"Error crawling vishvas news links: {e}")
                 break
 
             if if_sleep:
@@ -154,13 +211,13 @@ class Crawler:
                     '//div[@class="nav-links"]/a'
                 )[0]
             except Exception as e:
-                print(f"Failed: no more posts: {e}")
+                self.log_adapter.info(f"No more posts: {e}")
                 break
 
         links = []
         for a in set(articles):
             links.append(a.get_attribute("href"))
-            links = list(set(links))
+        links = list(set(links))
 
         driver.close()
 
@@ -176,44 +233,84 @@ class Crawler:
         # get story links based on url and page range
         url_list = []
 
+        scraping_url = utils.get_scraping_url(self.mode)
+        coll = db.get_collection(
+            scraping_url, constants.SCRAPING_DB_DEV, constants.SCRAPING_DB_COLL_STORIES
+        )
+
         # TODO: remove page count once crawling by date implemented
         # day_count = self.get_scrape_days(scrape_date)
 
+        do_crawl = True
         for page in tqdm(range(constants.CRAWL_PAGE_COUNT), desc="pages: "):
-            page_url = f"{self.crawler_url}/{page}"
-            tree = utils.get_tree(page_url)
-            if if_sleep:
-                sleep(randint(1, 5))
+            if do_crawl:
+                page_url = f"{self.crawler_url}/{page}"
+                tree = utils.get_tree(page_url)
+                if if_sleep:
+                    sleep(randint(1, 5))
 
-            # 12 story layout
-            # 1 link
-            link = tree.xpath(
-                "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[1]/a"
-            )
-            url_list.append(link[0].get("href"))
-            # 5 links
-            links = tree.xpath('//div[contains(@class,"custom-story-card-4")]/a[@href]')
-            for link in links:
-                url_list.append(link.get("href"))
-            # 1 link
-            link = tree.xpath(
-                "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[3]/div[1]/a[2]"
-            )
-            url_list.append(link[0].get("href"))
-            # 1 link
-            link = tree.xpath(
-                "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[3]/div[2]/a[2]"
-            )
-            url_list.append(link[0].get("href"))
-            # 4 links
-            links = tree.xpath('//div[contains(@class,"custom-story-card-5")]/a[@href]')
-            for link in links:
-                url_list.append(link.get("href"))
+                # 12 story layout
+                # 1 link
+                link = tree.xpath(
+                    "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[1]/a"
+                )
+                link = link[0].get("href") + "/"
+                if coll.count_documents({"postURL": link}, {}):
+                    # post already in db - stop crawling
+                    self.log_adapter.info("Found older posts. Stopping crawl...")
+                    do_crawl = False
+                else:
+                    url_list.append(link)
+                # 5 links
+                links = tree.xpath(
+                    '//div[contains(@class,"custom-story-card-4")]/a[@href]'
+                )
+                for link in links:
+                    link = link.get("href") + "/"
+                    if coll.count_documents({"postURL": link}, {}):
+                        # post already in db - stop crawling
+                        self.log_adapter.info("Found older posts. Stopping crawl...")
+                        do_crawl = False
+                    else:
+                        url_list.append(link)
+                # 1 link
+                link = tree.xpath(
+                    "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[3]/div[1]/a[2]"
+                )
+                link = link[0].get("href") + "/"
+                if coll.count_documents({"postURL": link}, {}):
+                    # post already in db - stop crawling
+                    self.log_adapter.info("Found older posts. Stopping crawl...")
+                    do_crawl = False
+                else:
+                    url_list.append(link)
+                # 1 link
+                link = tree.xpath(
+                    "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[3]/div[2]/a[2]"
+                )
+                link = link[0].get("href") + "/"
+                if coll.count_documents({"postURL": link}, {}):
+                    # post already in db - stop crawling
+                    self.log_adapter.info("Found older posts. Stopping crawl...")
+                    do_crawl = False
+                else:
+                    url_list.append(link)
+                # 4 links
+                links = tree.xpath(
+                    '//div[contains(@class,"custom-story-card-5")]/a[@href]'
+                )
+                for link in links:
+                    # append "/" to end of each url for article_downloader to function correctly
+                    link = link.get("href") + "/"
+                    if coll.count_documents({"postURL": link}, {}):
+                        # post already in db - stop crawling
+                        self.log_adapter.info("Found older posts. Stopping crawl...")
+                        do_crawl = False
+                    else:
+                        url_list.append(link)
 
         # get unique urls
         url_list = list(set(url_list))
-        # append "/" to end of each url for article_downloader to function correctly
-        url_list = list(map(lambda url: f"{url}/", url_list))
 
         return url_list
 
@@ -244,17 +341,41 @@ class Crawler:
         driver = utils.setup_driver()
         driver = utils.get_driver(self.crawler_url, driver)
         # NOTE: "Recent Posts" start nearly 1 page down, hence scroll a page more
-        utils.infinite_scroll(driver, constants.CRAWL_PAGE_COUNT, if_sleep)
-        url_list = self.get_post_links_from_page_altnews(driver.page_source)
 
-        """
-        for _ in tqdm(range(1), desc="page: "):
-            # TODO: write parser to get post dates for urls + stop parsing + remove older urls
-            cur_links = self.get_post_links_from_page_altnews()
-            url_list += cur_links
-            if if_sleep:
-                sleep(randint(10, 20))
-        """
+        scraping_url = utils.get_scraping_url(self.mode)
+        coll = db.get_collection(
+            scraping_url, constants.SCRAPING_DB_DEV, constants.SCRAPING_DB_COLL_STORIES
+        )
+
+        do_crawl = True
+        # Get scroll height
+        last_height = driver.execute_script("return document.body.scrollHeight")
+        for _ in tqdm(range(constants.CRAWL_PAGE_COUNT), desc="links: "):
+            if do_crawl:
+                # Scroll down to bottom
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+                # check to stop scrolling
+                url_list = self.get_post_links_from_page_altnews(driver.page_source)
+                for link in url_list:
+                    if coll.count_documents({"postURL": link}, {}):
+                        # post already in db - stop crawling
+                        self.log_adapter.info("Found older posts. Stopping crawl...")
+                        do_crawl = False
+
+                # Wait to load page
+                if if_sleep:
+                    sleep(randint(10, 20))
+
+                # Calculate new scroll height and compare with last scroll height
+                new_height = driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    # If heights are the same it will exit the function
+                    break
+                last_height = new_height
+
+        # utils.infinite_scroll(driver, constants.CRAWL_PAGE_COUNT, if_sleep)
+        url_list = self.get_post_links_from_page_altnews(driver.page_source)
 
         driver.close()
 

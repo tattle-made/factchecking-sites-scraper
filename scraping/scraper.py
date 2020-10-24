@@ -28,13 +28,17 @@ class Scraper:
         # setup logger
         self.logger = utils.setup_logger(__name__)
 
+        if crawl_site not in constants.SITES:
+            raise ValueError(
+                f"{crawl_site} is not a valid site. Sites should match entries in constants.SITES"
+            )
+
         # get site info
         site = constants.SITES[crawl_site]
         self.crawler_url = site.get("url", None)
         self.domain = site.get("domain", None)
         self.lang = site.get("langs", None)
         self.get_links_fn = site.get("getLinks", None)
-        self.get_post_fn = site.get("getPost", None)
         self.body_div = site.get("body_div", None)
         self.img_link = site.get("img_link", None)
         self.header_div = site.get("header_div", None)
@@ -246,20 +250,15 @@ class Scraper:
             return False
 
         if not os.path.exists(self.article_dl_temp_out_file_path):
-            if not os.path.exists(self.crawler_temp_out_file_path):
-                log_adapter.error(
-                    "Crawler output file does not exist! Run crawler first."
-                )
-            else:
-                log_adapter.error(
-                    "Article downloader output file does not exist! Run article downloader first."
-                )
+            log_adapter.error(
+                "Article downloader output file does not exist! Run article downloader first."
+            )
             return False
 
         with open(self.article_dl_temp_out_file_path, "rb") as fp:
             article_dl_out_dict = pickle.load(fp)
 
-        parser = ArticleParser()
+        art_parser = ArticleParser(self.domain)
 
         scraping_url = utils.get_scraping_url(self.mode)
         # TODO: dev vs. prod db
@@ -273,9 +272,8 @@ class Scraper:
 
                 file_path = article_dl_out_dict[url]
 
-                get_post = getattr(parser, self.get_post_fn)
-
-                post = get_post(
+                post = art_parser.parser(
+                    art_parser.get_tree,  # pass as function to avoid circular imports
                     url,
                     post_file_path=file_path,
                     langs=self.lang,
@@ -373,7 +371,7 @@ class Scraper:
 logger = utils.setup_logger(__name__)
 log_adapter = utils.CustomAdapter(logger, {"entity": "scraper"})
 
-site = "altnews.in"
+site = "vishvasnews.com/english"
 # "altnews.in"
 # "altnews.in/hindi"
 # "thequint.com"
@@ -382,8 +380,10 @@ site = "altnews.in"
 # "vishvasnews.com/punjabi"
 # "vishvasnews.com/assamese"
 scraper = Scraper(
-    crawl_site=site, mode=constants.MODE_REMOTE, if_sleep=True, scrape_from="13.10.2020"
+    crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="13.10.2020"
 )
+result = scraper.crawler()
+"""
 result = scraper.crawler()
 if result:
     result = scraper.article_downloader()
@@ -403,3 +403,4 @@ if result:
         log_adapter.error("Article downloader failed!")
 else:
     log_adapter.error("Crawler failed!")
+"""

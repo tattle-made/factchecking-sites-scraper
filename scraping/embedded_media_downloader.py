@@ -125,38 +125,63 @@ class EmbeddedMediaDownloader:
 
         return query
 
-    def save_videos(self, query_images: list) -> None:
-        # TODO:
-        """
+    def save_videos(self, query_images: list) -> bool:
+        # TODO: save videos
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
             "Content-Type": "text/html",
         }
 
-        # TODO: pipeline failure handling - see save_images() above
+        if os.path.exists(self.dl_image_out_file_path):
+            # TODO: Pipeline failure. Load snapshot and run pipeline
+            self.log_adapter.info(
+                "Previous pipeline failed. Processing previous pipeline first..."
+            )
+            self.log_adapter.debug(
+                "Snapshot processing not yet implemented. First run pipeline from data uploader!"
+            )
+            return False
+
+        if not os.path.exists(constants.IMAGE_DOWNLOAD_FILEPATH):
+            os.makedirs(constants.IMAGE_DOWNLOAD_FILEPATH)
 
         url = None
-        for doc in tqdm(query_images, desc="videos: ", file=stdout):
+        filename_dict = {}
+        for doc in tqdm(query_images, desc="images: ", file=stdout):
             # doc: postID, doc_id, url
             try:
                 sleep(1)
 
                 url = doc["url"]
-                r = requests.get(url, headers=headers)
-
-                image = Image.open(BytesIO(r.content))
 
                 # file params
-                filename = url.split("/")[-1]
+                filename = ""
+                if url.endswith("://"):
+                    # handle valid filename eg https://i0.wp.com/www.altnews.in/wp-content/uploads/2017/04/electrification-percentages.jpg?resize=696%2C141http://
+                    filename = url.split("/")[-3] + "//"
+                else:
+                    filename = url.split("/")[-1]
                 if "?" in filename:
                     filename = filename.split("?")[0]
-                filepath = os.path.join(constants.MEDIA_DOWNLOAD_FILEPATH, filename)
+                filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
 
-                # save
-                image.save(filepath)
+                if os.path.exists(filepath):
+                    self.log_adapter.info(
+                        f"Skipping {filename} download. File already exists."
+                    )
+                else:
+                    r = requests.get(url, headers=headers)
+                    image = Image.open(BytesIO(r.content))
+                    # save
+                    image.save(filepath)
+
+                # Save filenames for upload step
+                filename_dict[url] = [doc, filename]
 
             except Exception as e:
-                print(f"failed @{url}: {e}")
-        """
+                self.log_adapter.error(f"Failed @{url}: {e}")
 
-        return None
+        with open(self.dl_image_out_file_path, "wb") as fp:
+            pickle.dump(filename_dict, fp)
+
+        return True
