@@ -21,7 +21,7 @@ class EmbeddedMediaDownloader:
             constants.TEMP_PIPELINE_FILEPATH, constants.MEDIA_DL_IMAGE_FILENAMES
         )
 
-    def get_all_images(self):
+    def get_all_images(self) -> list:
         # get all image docs
         # get a list of urls and postIDs
         pipeline = [
@@ -102,7 +102,7 @@ class EmbeddedMediaDownloader:
 
         return True
 
-    def get_all_videos(self):
+    def get_all_videos(self) -> list:
         # get all video docs
         # get a list of urls and postIDs
 
@@ -121,12 +121,12 @@ class EmbeddedMediaDownloader:
             #         {"$sample": {"size": 10}},
         ]
         query = list(self.coll.aggregate(pipeline))
-        print(len(query))
 
         return query
 
     def save_videos(self, query_images: list) -> bool:
         # TODO: save videos
+        """
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
             "Content-Type": "text/html",
@@ -183,5 +183,5 @@ class EmbeddedMediaDownloader:
 
         with open(self.dl_image_out_file_path, "wb") as fp:
             pickle.dump(filename_dict, fp)
-
+        """
         return True

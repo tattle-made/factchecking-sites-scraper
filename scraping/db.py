@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from pymongo.collection import Collection
 import uuid
+from datetime import datetime
 
 
 def get_collection(scraping_url: str, db_name: str, coll_name: str) -> Collection:
@@ -14,18 +15,18 @@ def get_collection(scraping_url: str, db_name: str, coll_name: str) -> Collectio
 
 # note: priorSchema uses postID as index, and DocSchema uses doc_id
 def get_doc_schema(
-    doc_id=None,
-    post_id=None,
-    domain=None,
-    orig_url=None,
-    s3_url=None,
-    possible_lang=None,
-    is_good_prior=[0, 0],
-    media_type=None,
-    content=None,
-    now_date=None,
-    now_date_utc=None,
-):
+    doc_id: str = None,
+    post_id: str = None,
+    domain: str = None,
+    orig_url: str = None,
+    s3_url: str = None,
+    possible_lang: list = None,
+    is_good_prior: list = [0, 0],
+    media_type: str = None,
+    content: str = None,
+    now_date: str = None,
+    now_date_utc: datetime = None,
+) -> dict:
     # schema for an individual doc inside a news article
     if doc_id is None:
         doc_id = uuid.uuid4().hex
@@ -47,20 +48,20 @@ def get_doc_schema(
 
 
 def get_story_schema(
-    post_id=None,
-    post_url=None,
-    domain=None,
-    headline=None,
-    date_accessed=None,
-    date_accessed_utc=None,
-    date_updated=None,
-    date_updated_utc=None,
-    author=None,
-    s3_url=None,
-    post_category=None,
-    claims_review=None,
-    docs=[],
-):
+    post_id: str = None,
+    post_url: str = None,
+    domain: str = None,
+    headline: str = None,
+    date_accessed: str = None,
+    date_accessed_utc: datetime = None,
+    date_updated: str = None,
+    date_updated_utc: datetime = None,
+    author: dict = None,
+    s3_url: str = None,
+    post_category=None,  # TODO:
+    claims_review=None,  # TODO:
+    docs: list = [],
+) -> dict:
     # schema for a news story/article
     if post_id is None:
         post_id = uuid.uuid4().hex

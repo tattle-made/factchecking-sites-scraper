@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+from typing import Optional
 
 import utils
 
@@ -12,7 +13,7 @@ class ArticleDownloader:
         self.log_adapter = log_adapter
         self.out_folder = out_folder
 
-    def save_post(self, url: str, retry_count: int) -> str:
+    def save_post(self, url: str, retry_count: int) -> Optional[str]:
         """
         Save each post
         # TODO: currently assuming post does not have infinite scroll
@@ -48,3 +49,5 @@ class ArticleDownloader:
                 self.log_adapter.error(f"failed request: {e}")
 
             count += 1
+
+        return None

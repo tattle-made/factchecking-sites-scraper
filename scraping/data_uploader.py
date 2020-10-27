@@ -40,7 +40,7 @@ class DataUploader:
 
         return s3
 
-    def upload_media(self):
+    def upload_media(self) -> None:
         """
         Upload media to AWS S3 storage
 
@@ -98,7 +98,7 @@ class DataUploader:
 
         return None
 
-    def upload_articles(self, article_dl_temp_out_file_path):
+    def upload_articles(self, article_dl_temp_out_file_path: str) -> None:
         self.log_adapter.info(f"Uploading articles...")
 
         scraping_url = utils.get_scraping_url(self.mode)

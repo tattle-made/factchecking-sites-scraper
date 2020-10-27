@@ -1,10 +1,8 @@
-from time import sleep
 from time import time
+from typing import Optional
 import os
 import logging
 import json
-from numpy.random import randint
-from tqdm import tqdm
 
 from selenium import webdriver
 from lxml.html import fromstring
@@ -24,7 +22,7 @@ class CustomAdapter(logging.LoggerAdapter):
         return "[%s] %s" % (self.extra["entity"], msg), kwargs
 
 
-def setup_logger(name):
+def setup_logger(name: str) -> logging.Logger:
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         level=logging.DEBUG,
@@ -52,7 +50,7 @@ def setup_logger(name):
     return logger
 
 
-def get_scraping_url(mode: str):
+def get_scraping_url(mode: str) -> Optional[str]:
     scraping_url = None
     if mode == constants.MODE_LOCAL:
         scraping_url = os.environ["SCRAPING_URL_LOCAL"]
@@ -64,7 +62,7 @@ def get_scraping_url(mode: str):
     return scraping_url
 
 
-def get_local_time(url):
+def get_local_time(url: str) -> Optional[str]:
     """
     Get time when url was last scraped locally
 
@@ -90,7 +88,7 @@ def get_local_time(url):
     return time
 
 
-def get_remote_time(url):
+def get_remote_time(url: str) -> Optional[str]:
     """
     Get time when url was last scraped on remote
 
@@ -106,7 +104,7 @@ def get_remote_time(url):
     return time
 
 
-def save_crawl_time(url):
+def save_crawl_time(url: str) -> None:
 
     with open(constants.SCRAPE_TIME_FILEPATH, "w+") as log_file:
         if not os.path.getsize(constants.SCRAPE_TIME_FILEPATH):
@@ -124,7 +122,7 @@ def save_crawl_time(url):
     return None
 
 
-def get_last_crawl_time(mode, url):
+def get_last_crawl_time(mode: str, url: str) -> str:
     """
     Get stored time when url was last scraped
 
@@ -148,7 +146,7 @@ def get_last_crawl_time(mode, url):
     return time
 
 
-def get_tree(url):
+def get_tree(url: str):
     # get the tree of each page
     # TODO: https://www.peterbe.com/plog/best-practice-with-retries-with-requests
     headers = {
@@ -197,29 +195,6 @@ def get_driver(url, driver, wait_time=1):
         pass
 
     return driver
-
-
-def infinite_scroll(driver, page_count, do_sleep=True):
-    # Modified Source: https://dev.to/mr_h/python-selenium-infinite-scrolling-3o12
-
-    # Get scroll height
-    last_height = driver.execute_script("return document.body.scrollHeight")
-
-    for _ in tqdm(range(page_count), desc="links: "):
-        # while count < page_count+1:
-        # Scroll down to bottom
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-
-        # Wait to load page
-        if do_sleep:
-            sleep(randint(10, 20))
-
-        # Calculate new scroll height and compare with last scroll height
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        if new_height == last_height:
-            # If heights are the same it will exit the function
-            break
-        last_height = new_height
 
 
 # ================== SELENIUM HELPER FUNCTIONS END ==================
