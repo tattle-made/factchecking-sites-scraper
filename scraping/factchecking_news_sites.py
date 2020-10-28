@@ -25,7 +25,7 @@ def get_db():
     # replace with your own db
     mongo_url = environ['SCRAPING_URL']
     cli = MongoClient(mongo_url)
-    db = cli.factcheck_sites_dev.stories
+    db = cli.factcheck_sites.stories
     
     return db
 
