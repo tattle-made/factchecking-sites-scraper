@@ -62,37 +62,50 @@ class DataUploader:
         with open(media_dl.dl_image_out_file_path, "rb") as fp:
             filename_dict = pickle.load(fp)
 
+        # get failed files list
+        with open(media_dl.failed_dl_image_out_file_path, "rb") as fp:
+            failed_filename_list = pickle.load(fp)
+
         s3 = self.aws_connection()
         for media_url in tqdm(filename_dict, desc="Uploading: "):
             doc = filename_dict[media_url][0]
             filename = filename_dict[media_url][1]
 
-            content_type = guess_type(filename)[0]
-            if not content_type:
-                # content type could not be determined
-                content_type = constants.UNK_CONTENT_TYPE
-            s3_filename = str(uuid4())
-            # NOTE: this should match the path in EmbeddedMediaDownloader.save_images()
-            filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
-
-            if os.path.exists(filepath):
-                # data not previously uploaded
-                s3.upload_file(
-                    filepath,
-                    constants.BUCKET,
-                    s3_filename,
-                    ExtraArgs={"ContentType": content_type},
-                )
-                s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{s3_filename}"
-
-                # update domain to something else
+            if filename in failed_filename_list:
+                # file download had failed - update db s3url with error tag
+                s3_url = constants.S3_MEDIA_ERR
                 coll.update_one(
                     {"postID": doc["postID"]},
                     {"$set": {"docs.$[elem].s3URL": s3_url}},
                     array_filters=[{"elem.doc_id": doc["doc_id"]}],
                 )
+            else:
+                content_type = guess_type(filename)[0]
+                if not content_type:
+                    # content type could not be determined
+                    content_type = constants.UNK_CONTENT_TYPE
+                s3_filename = str(uuid4())
+                # NOTE: this should match the path in EmbeddedMediaDownloader.save_images()
+                filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
 
-                os.remove(filepath)
+                if os.path.exists(filepath):
+                    # data not previously uploaded
+                    s3.upload_file(
+                        filepath,
+                        constants.BUCKET,
+                        s3_filename,
+                        ExtraArgs={"ContentType": content_type},
+                    )
+                    s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{s3_filename}"
+
+                    # update domain to something else
+                    coll.update_one(
+                        {"postID": doc["postID"]},
+                        {"$set": {"docs.$[elem].s3URL": s3_url}},
+                        array_filters=[{"elem.doc_id": doc["doc_id"]}],
+                    )
+
+                    os.remove(filepath)
 
         self.log_adapter.info(f"Media upload succeeded!")
 

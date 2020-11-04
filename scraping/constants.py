@@ -12,6 +12,7 @@ CRAWLED_URLS_BEGIN_FILENAME = "crawled_urls_"
 DOWNLOADED_ARTICLES_BEGIN_FILENAME = "downloaded_articles_"
 PARSED_ARTICLES_BEGIN_FILENAME = "parsed_articles_"
 MEDIA_DL_IMAGE_FILENAMES = "media_dl_image_filename.pkl"
+MEDIA_DL_IMAGE_FAILED_FILENAMES = "media_dl_image_failed_filename.pkl"
 
 CRAWLED_URLS_FILE_EXTENSION = ".pkl"
 DOWNLOADED_ARTICLES_FILE_EXTENSION = ".pkl"
@@ -61,7 +62,7 @@ SCRAPING_DB_COLL_STORIES = "stories"
 RETRY_COUNT = 3
 
 # crawl page count
-CRAWL_PAGE_COUNT = 10
+CRAWL_PAGE_COUNT = 1000
 
 # data uploader
 UNK_CONTENT_TYPE = "unk_content_type"
@@ -69,6 +70,9 @@ UNK_CONTENT_TYPE = "unk_content_type"
 # s3 data uploader
 BUCKET = "tattle-story-scraper"
 REGION_NAME = "ap-south-1"
+
+# s3 media err tag
+S3_MEDIA_ERR = "ERR"
 
 # sites config
 SITES = {

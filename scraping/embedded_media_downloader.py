@@ -17,8 +17,15 @@ class EmbeddedMediaDownloader:
         self.coll = coll
         self.log_adapter = log_adapter
 
+        # NOTE: THESE PATHS SHOULD NOT BE DYNAMICALLY ASSIGNED BY VARIABLES
+        # AS THEY ARE USED STATICALLY BY data_uploader.py
         self.dl_image_out_file_path = os.path.join(
             constants.TEMP_PIPELINE_FILEPATH, constants.MEDIA_DL_IMAGE_FILENAMES
+        )
+        # NOTE: THESE PATHS SHOULD NOT BE DYNAMICALLY ASSIGNED BY VARIABLES
+        # AS THEY ARE USED STATICALLY BY data_uploader.py
+        self.failed_dl_image_out_file_path = os.path.join(
+            constants.TEMP_PIPELINE_FILEPATH, constants.MEDIA_DL_IMAGE_FAILED_FILENAMES
         )
 
     def get_all_images(self) -> list:
@@ -63,15 +70,16 @@ class EmbeddedMediaDownloader:
 
         url = None
         filename_dict = {}
+        failed_file_list = []
         for doc in tqdm(query_images, desc="images: ", file=stdout):
             # doc: postID, doc_id, url
+            filename = ""
             try:
                 sleep(1)
 
                 url = doc["url"]
 
                 # file params
-                filename = ""
                 if url.endswith("://"):
                     # handle valid filename eg https://i0.wp.com/www.altnews.in/wp-content/uploads/2017/04/electrification-percentages.jpg?resize=696%2C141http://
                     filename = url.split("/")[-3] + "//"
@@ -80,6 +88,9 @@ class EmbeddedMediaDownloader:
                 if "?" in filename:
                     filename = filename.split("?")[0]
                 filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
+
+                # Save filenames for upload step
+                filename_dict[url] = [doc, filename]
 
                 if os.path.exists(filepath):
                     self.log_adapter.info(
@@ -91,14 +102,15 @@ class EmbeddedMediaDownloader:
                     # save
                     image.save(filepath)
 
-                # Save filenames for upload step
-                filename_dict[url] = [doc, filename]
-
             except Exception as e:
                 self.log_adapter.error(f"Failed @{url}: {e}")
+                failed_file_list.append(filename)
 
         with open(self.dl_image_out_file_path, "wb") as fp:
             pickle.dump(filename_dict, fp)
+
+        with open(self.failed_dl_image_out_file_path, "wb") as fp:
+            pickle.dump(failed_file_list, fp)
 
         return True
 

@@ -83,6 +83,7 @@ class Crawler:
         with open(self.crawler_out_file_path, "wb") as fp:
             pickle.dump(url_list, fp)
 
+        self.log_adapter.debug(f"crawled urls: {len(url_list)}, urls: {url_list}")
         return None
 
     def update_log(self, url_count: int) -> None:

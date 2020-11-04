@@ -362,6 +362,7 @@ class Scraper:
         os.remove(self.article_dl_temp_out_file_path)
         os.remove(self.article_parser_temp_out_file_path)
         os.remove(media_dl.dl_image_out_file_path)
+        os.remove(media_dl.failed_dl_image_out_file_path)
         # TODO: remove videos++ file paths after upload
 
         return True
@@ -371,7 +372,7 @@ class Scraper:
 logger = utils.setup_logger(__name__)
 log_adapter = utils.CustomAdapter(logger, {"entity": "scraper"})
 
-site = "vishvasnews.com/english"
+site = "altnews.in"
 # "altnews.in"
 # "altnews.in/hindi"
 # "thequint.com"
@@ -382,8 +383,6 @@ site = "vishvasnews.com/english"
 scraper = Scraper(
     crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="13.10.2020"
 )
-result = scraper.crawler()
-"""
 result = scraper.crawler()
 if result:
     result = scraper.article_downloader()
@@ -403,4 +402,3 @@ if result:
         log_adapter.error("Article downloader failed!")
 else:
     log_adapter.error("Crawler failed!")
-"""
