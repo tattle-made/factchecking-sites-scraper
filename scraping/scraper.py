@@ -348,7 +348,13 @@ class Scraper:
 
         upload = DataUploader(self.mode, log_adapter)
 
-        upload.upload_articles(self.article_dl_temp_out_file_path)
+        if os.path.exists(self.article_dl_temp_out_file_path):
+            upload.upload_articles(self.article_dl_temp_out_file_path)
+        else:
+            log_adapter.warning(
+                f"File does not exist: {self.article_dl_temp_out_file_path}!"
+            )
+
         upload.upload_media()
 
         scraping_url = utils.get_scraping_url(self.mode)
@@ -359,10 +365,14 @@ class Scraper:
         media_dl = EmbeddedMediaDownloader(coll, log_adapter)
 
         # delete temp files
-        os.remove(self.article_dl_temp_out_file_path)
-        os.remove(self.article_parser_temp_out_file_path)
-        os.remove(media_dl.dl_image_out_file_path)
-        os.remove(media_dl.failed_dl_image_out_file_path)
+        if os.path.exists(self.article_dl_temp_out_file_path):
+            os.remove(self.article_dl_temp_out_file_path)
+        if os.path.exists(self.article_parser_temp_out_file_path):
+            os.remove(self.article_parser_temp_out_file_path)
+        if os.path.exists(media_dl.dl_image_out_file_path):
+            os.remove(media_dl.dl_image_out_file_path)
+        if os.path.exists(media_dl.failed_dl_image_out_file_path):
+            os.remove(media_dl.failed_dl_image_out_file_path)
         # TODO: remove videos++ file paths after upload
 
         return True
@@ -381,24 +391,28 @@ site = "altnews.in"
 # "vishvasnews.com/punjabi"
 # "vishvasnews.com/assamese"
 scraper = Scraper(
-    crawl_site=site, mode=constants.MODE_LOCAL, if_sleep=True, scrape_from="13.10.2020"
+    crawl_site=site, mode=constants.MODE_REMOTE, if_sleep=True, scrape_from="13.10.2020"
 )
+"""
 result = scraper.crawler()
 if result:
     result = scraper.article_downloader()
     if result:
         result = scraper.article_parser()
         if result:
-            result = scraper.embedded_media_downloader()
-            if result:
-                result = scraper.data_uploader()
-                if not result:
-                    log_adapter.error("Data uploader failed!")
-            else:
-                log_adapter.error("Embedded media downloader failed!")
+"""
+result = scraper.embedded_media_downloader()
+if result:
+    result = scraper.data_uploader()
+    if not result:
+        log_adapter.error("Data uploader failed!")
+else:
+    log_adapter.error("Embedded media downloader failed!")
+"""
         else:
             log_adapter.error("Article parser failed!")
     else:
         log_adapter.error("Article downloader failed!")
 else:
     log_adapter.error("Crawler failed!")
+"""

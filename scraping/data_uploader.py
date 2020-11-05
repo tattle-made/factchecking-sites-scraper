@@ -66,6 +66,25 @@ class DataUploader:
         with open(media_dl.failed_dl_image_out_file_path, "rb") as fp:
             failed_filename_list = pickle.load(fp)
 
+        # NOTE: handle bug for same multiple uploads
+        # - www.factcrescendo.com/wp-content/uploads/2019/03/False.png?w=640&ssl=1
+        # - www.factcrescendo.com/wp-content/uploads/2019/02/False-2.png?w=640&ssl=1
+        # - https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/misleading-emoji.png
+        # - https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/true-emoji.png
+        # - https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/false-emoji.png
+        # - author images
+        img_bugs_list = [
+            "False.png",
+            "False-2.png",
+            "misleading-emoji.png",
+            "true-emoji.png",
+            "false-emoji.png",
+            "false-emoji.gif",
+            "ashish.jpg",
+            "urvashikapoor-150x150.jpg",
+            "pallavi.jpg",
+        ]
+
         s3 = self.aws_connection()
         for media_url in tqdm(filename_dict, desc="Uploading: "):
             doc = filename_dict[media_url][0]
@@ -105,7 +124,15 @@ class DataUploader:
                         array_filters=[{"elem.doc_id": doc["doc_id"]}],
                     )
 
-                    os.remove(filepath)
+                    # NOTE: handle bug for same multiple uploads
+                    if filename not in img_bugs_list:
+                        os.remove(filepath)
+
+        # NOTE: handle bug for same multiple uploads
+        for img_del in img_bugs_list:
+            filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, img_del)
+            if os.path.exists(filepath):
+                os.remove(filepath)
 
         self.log_adapter.info(f"Media upload succeeded!")
 
