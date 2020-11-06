@@ -83,15 +83,22 @@ class DataUploader:
             "ashish.jpg",
             "urvashikapoor-150x150.jpg",
             "pallavi.jpg",
+            "WhatsApp-Image-2018-07-24-at-10.39.25-AM.jpeg",
+            "6a5dcaa7-6945-4866-bdac-d329f715e60c.jpeg",
         ]
 
+        img_bugs_dict = {}  # save s3 objects for reference
+
         s3 = self.aws_connection()
-        for media_url in tqdm(filename_dict, desc="Uploading: "):
-            doc = filename_dict[media_url][0]
-            filename = filename_dict[media_url][1]
+        for doc_idx in tqdm(filename_dict, desc="Uploading: "):
+            # media_url = filename_dict[doc_idx][0]
+            doc = filename_dict[doc_idx][1]
+            filename = filename_dict[doc_idx][2]
+            self.log_adapter.debug(f"Starting upload of file: {filename}")
 
             if filename in failed_filename_list:
                 # file download had failed - update db s3url with error tag
+                self.log_adapter.debug(f"failed file download. Updating s3url...")
                 s3_url = constants.S3_MEDIA_ERR
                 coll.update_one(
                     {"postID": doc["postID"]},
@@ -103,36 +110,54 @@ class DataUploader:
                 if not content_type:
                     # content type could not be determined
                     content_type = constants.UNK_CONTENT_TYPE
-                s3_filename = str(uuid4())
-                # NOTE: this should match the path in EmbeddedMediaDownloader.save_images()
-                filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
 
-                if os.path.exists(filepath):
-                    # data not previously uploaded
-                    s3.upload_file(
-                        filepath,
-                        constants.BUCKET,
-                        s3_filename,
-                        ExtraArgs={"ContentType": content_type},
+                # check if s3 object exists
+                if filename in img_bugs_dict:
+                    self.log_adapter.debug(
+                        f"Updating collection with existing s3 object for file: {filename}"
                     )
-                    s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{s3_filename}"
+                    s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{img_bugs_dict[filename]}"
 
                     # update domain to something else
-                    coll.update_one(
+                    self.log_adapter.debug(f"Updating s3url with uploaded image...")
+                    res = coll.update_one(
                         {"postID": doc["postID"]},
                         {"$set": {"docs.$[elem].s3URL": s3_url}},
                         array_filters=[{"elem.doc_id": doc["doc_id"]}],
                     )
+                    self.log_adapter.debug(
+                        f"Mongo coll modified documents count:{res.modified_count}"
+                    )
+                else:
+                    s3_filename = str(uuid4())
 
-                    # NOTE: handle bug for same multiple uploads
-                    if filename not in img_bugs_list:
+                    # save s3 object names
+                    if filename in img_bugs_list:
+                        img_bugs_dict[filename] = s3_filename
+
+                    # NOTE: this should match the path in EmbeddedMediaDownloader.save_images()
+                    filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
+
+                    if os.path.exists(filepath):
+                        # data not previously uploaded
+                        res = s3.upload_file(
+                            filepath,
+                            constants.BUCKET,
+                            s3_filename,
+                            ExtraArgs={"ContentType": content_type},
+                        )
+                        self.log_adapter.debug(f"s3 file upload res: {res}")
+                        s3_url = f"https://{constants.BUCKET}.s3.{constants.REGION_NAME}.amazonaws.com/{s3_filename}"
+
+                        # update domain to something else
+                        self.log_adapter.debug(f"Updating s3url with uploaded image...")
+                        coll.update_one(
+                            {"postID": doc["postID"]},
+                            {"$set": {"docs.$[elem].s3URL": s3_url}},
+                            array_filters=[{"elem.doc_id": doc["doc_id"]}],
+                        )
+
                         os.remove(filepath)
-
-        # NOTE: handle bug for same multiple uploads
-        for img_del in img_bugs_list:
-            filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, img_del)
-            if os.path.exists(filepath):
-                os.remove(filepath)
 
         self.log_adapter.info(f"Media upload succeeded!")
 

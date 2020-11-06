@@ -80,13 +80,19 @@ class EmbeddedMediaDownloader:
             if os.path.isfile(os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, f))
         ]
 
-        for doc in tqdm(query_images, desc="images: ", file=stdout):
+        for doc_idx, doc in tqdm(
+            enumerate(query_images),
+            total=len(query_images),
+            desc="images: ",
+            file=stdout,
+        ):
             # doc: postID, doc_id, url
             filename = ""
             try:
                 sleep(1)
 
                 url = doc["url"]
+                self.log_adapter.debug(f"url: {url}")
 
                 if url is None:
                     # NOTE: issue due to bug in earlier code
@@ -108,6 +114,8 @@ class EmbeddedMediaDownloader:
                         filename = url.split("/")[-1]
                     if "?" in filename:
                         filename = filename.split("?")[0]
+
+                    self.log_adapter.debug(f"initial filename: {filename}")
 
                     if filename == "RDESController":
                         # handle files served by boomlive servlet
@@ -173,17 +181,20 @@ class EmbeddedMediaDownloader:
                             constants.IMAGE_DOWNLOAD_FILEPATH, filename
                         )
                         image.save(filepath)
+                        img_files.append(filename)
 
                     # Save filenames for upload step
-                    filename_dict[url] = [doc, filename]
+                    self.log_adapter.debug(f"saved filename: {filename}")
+                    filename_dict[doc_idx] = [url, doc, filename]
 
             except Exception as e:
                 self.log_adapter.error(f"Failed @{url}: {e}")
                 failed_file_list.append(filename)
                 # add to dict for processing during data upload
-                filename_dict[url] = [doc, filename]
+                filename_dict[doc_idx] = [url, doc, filename]
 
         with open(self.dl_image_out_file_path, "wb") as fp:
+            self.log_adapter.debug(f"len filename_dict: {len(filename_dict)}")
             pickle.dump(filename_dict, fp)
 
         with open(self.failed_dl_image_out_file_path, "wb") as fp:
