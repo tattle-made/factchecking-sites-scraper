@@ -201,7 +201,7 @@ class Scraper:
             scraping_url, constants.SCRAPING_DB_DEV, constants.SCRAPING_DB_COLL_STORIES
         )
 
-        for url in tqdm(url_list, desc="links: "):
+        for url in tqdm(url_list, desc="downloading articles: "):
             if not coll.count_documents({"postURL": url}):
                 # collection empty or url not in collection
                 log_adapter.info(f"Saving post: {url}")
@@ -266,11 +266,13 @@ class Scraper:
             scraping_url, constants.SCRAPING_DB_DEV, constants.SCRAPING_DB_COLL_STORIES
         )
 
-        for url in tqdm(article_dl_out_dict, desc="links: "):
+        for url in tqdm(article_dl_out_dict, desc="parsing: "):
             try:
                 log_adapter.info(f"Parsing: {url}")
 
+                log_adapter.debug(f"article_dl_out_dict url:{url}")
                 file_path = article_dl_out_dict[url]
+                log_adapter.debug(f"article_dl_out_dict file_path:{file_path}")
 
                 post = art_parser.parser(
                     art_parser.get_tree,  # pass as function to avoid circular imports
@@ -376,43 +378,3 @@ class Scraper:
         # TODO: remove videos++ file paths after upload
 
         return True
-
-
-# setup logger
-logger = utils.setup_logger(__name__)
-log_adapter = utils.CustomAdapter(logger, {"entity": "scraper"})
-
-site = "altnews.in"
-# "altnews.in"
-# "altnews.in/hindi"
-# "thequint.com"
-# "vishvasnews.com/hindi"
-# "vishvasnews.com/english"
-# "vishvasnews.com/punjabi"
-# "vishvasnews.com/assamese"
-scraper = Scraper(
-    crawl_site=site, mode=constants.MODE_REMOTE, if_sleep=True, scrape_from="13.10.2020"
-)
-"""
-result = scraper.crawler()
-if result:
-    result = scraper.article_downloader()
-    if result:
-        result = scraper.article_parser()
-        if result:
-"""
-result = scraper.embedded_media_downloader()
-if result:
-    result = scraper.data_uploader()
-    if not result:
-        log_adapter.error("Data uploader failed!")
-else:
-    log_adapter.error("Embedded media downloader failed!")
-"""
-        else:
-            log_adapter.error("Article parser failed!")
-    else:
-        log_adapter.error("Article downloader failed!")
-else:
-    log_adapter.error("Crawler failed!")
-"""

@@ -73,6 +73,7 @@ class DataUploader:
         # - https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/true-emoji.png
         # - https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/false-emoji.png
         # - author images
+        # TODO: update this list with change in websites or post authors
         img_bugs_list = [
             "False.png",
             "False-2.png",
@@ -85,6 +86,7 @@ class DataUploader:
             "pallavi.jpg",
             "WhatsApp-Image-2018-07-24-at-10.39.25-AM.jpeg",
             "6a5dcaa7-6945-4866-bdac-d329f715e60c.jpeg",
+            "abhishekprashar-150x150.jpg",
         ]
 
         img_bugs_dict = {}  # save s3 objects for reference

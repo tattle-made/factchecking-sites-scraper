@@ -42,6 +42,7 @@ LOG_TAG_ARTICLE_PARSER = "ARTICLE_PARSER"
 LOG_TAG_EMBEDDED_MEDIA_DOWNLOADER = "EMBEDDED_MEDIA_DOWNLOADER"
 LOG_TAG_DATA_FORMATTER = "DATA_FORMATTER"
 LOG_TAG_DATA_UPOADER = "DATA_UPLOADER"
+LOG_TAG_TEST = "TEST"
 
 # scraping mode for saving data
 MODE_LOCAL = "local"
@@ -61,7 +62,7 @@ SCRAPING_DB_COLL_STORIES = "stories"
 # times to retry downloading article
 RETRY_COUNT = 3
 
-# crawl page count
+# TODO: crawl page count
 CRAWL_PAGE_COUNT = 1000
 
 # data uploader

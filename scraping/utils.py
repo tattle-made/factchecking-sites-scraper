@@ -29,23 +29,27 @@ def setup_logger(name: str) -> logging.Logger:
     )
     logger = logging.getLogger(name)
 
-    # create console handler
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    if not logger.hasHandlers():
+        # Prevent multiple print statements by checking if handler exists
+        # create console handler
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
 
-    # create file handler
-    handler = logging.FileHandler(constants.LOG_FILE, "a", encoding=None, delay=True)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+        # create file handler
+        handler = logging.FileHandler(
+            constants.LOG_FILE, "a", encoding=None, delay=True
+        )
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
 
     return logger
 

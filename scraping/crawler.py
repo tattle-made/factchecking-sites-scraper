@@ -341,7 +341,6 @@ class Crawler:
         # infinite scrolling
         driver = utils.setup_driver()
         driver = utils.get_driver(self.crawler_url, driver)
-        # NOTE: "Recent Posts" start nearly 1 page down, hence scroll a page more
 
         scraping_url = utils.get_scraping_url(self.mode)
         coll = db.get_collection(
@@ -351,6 +350,7 @@ class Crawler:
         do_crawl = True
         # Get scroll height
         last_height = driver.execute_script("return document.body.scrollHeight")
+
         for _ in tqdm(range(constants.CRAWL_PAGE_COUNT), desc="links: "):
             if do_crawl:
                 # Scroll down to bottom
@@ -394,7 +394,9 @@ class Crawler:
 
         """
         tree = fromstring(page_src)
-        all_links = tree.xpath("//h4/a[@href]")
+        # XPath Axes: https://www.scientecheasy.com/2019/08/xpath-axes.html/
+        # find span 'Recent Posts' and all following links
+        all_links = tree.xpath("//span[text()='Recent Posts']//following::h4/a")
         links = []
         for _, x in enumerate(all_links):
             links.append(x.get("href"))
