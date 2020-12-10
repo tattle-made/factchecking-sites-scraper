@@ -194,7 +194,9 @@ class Crawler:
                 if coll.count_documents({"postURL": link}, {}):
                     # post already in db - stop crawling
                     self.log_adapter.info("Found older posts. Stopping crawl...")
-                    do_crawl = False
+                    # TODO: This is temporary fix to scrape all (duplicate) articles.
+                    #  Set to False to stop stop scraping once older articles encountered
+                    do_crawl = True
 
             try:
                 more_posts_link.click()
@@ -259,7 +261,12 @@ class Crawler:
                 if coll.count_documents({"postURL": link}, {}):
                     # post already in db - stop crawling
                     self.log_adapter.info("Found older posts. Stopping crawl...")
-                    do_crawl = False
+                    # TODO: This is temporary fix to scrape all (duplicate) articles.
+                    #  Set to False to stop stop scraping once older articles encountered
+                    do_crawl = True
+                    url_list.append(
+                        link
+                    )  # TODO: Remove this line to stop scraping on encountering older articles
                 else:
                     url_list.append(link)
                 # 5 links
@@ -271,7 +278,12 @@ class Crawler:
                     if coll.count_documents({"postURL": link}, {}):
                         # post already in db - stop crawling
                         self.log_adapter.info("Found older posts. Stopping crawl...")
-                        do_crawl = False
+                        # TODO: This is temporary fix to scrape all (duplicate) articles.
+                        #  Set to False to stop stop scraping once older articles encountered
+                        do_crawl = True
+                        url_list.append(
+                            link
+                        )  # TODO: Remove this line to stop scraping on encountering older articles
                     else:
                         url_list.append(link)
                 # 1 link
@@ -282,7 +294,12 @@ class Crawler:
                 if coll.count_documents({"postURL": link}, {}):
                     # post already in db - stop crawling
                     self.log_adapter.info("Found older posts. Stopping crawl...")
-                    do_crawl = False
+                    # TODO: This is temporary fix to scrape all (duplicate) articles.
+                    #  Set to False to stop stop scraping once older articles encountered
+                    do_crawl = True
+                    url_list.append(
+                        link
+                    )  # TODO: Remove this line to stop scraping on encountering older articles
                 else:
                     url_list.append(link)
                 # 1 link
@@ -293,7 +310,12 @@ class Crawler:
                 if coll.count_documents({"postURL": link}, {}):
                     # post already in db - stop crawling
                     self.log_adapter.info("Found older posts. Stopping crawl...")
-                    do_crawl = False
+                    # TODO: This is temporary fix to scrape all (duplicate) articles.
+                    #  Set to False to stop stop scraping once older articles encountered
+                    do_crawl = True
+                    url_list.append(
+                        link
+                    )  # TODO: Remove this line to stop scraping on encountering older articles
                 else:
                     url_list.append(link)
                 # 4 links
@@ -306,7 +328,12 @@ class Crawler:
                     if coll.count_documents({"postURL": link}, {}):
                         # post already in db - stop crawling
                         self.log_adapter.info("Found older posts. Stopping crawl...")
-                        do_crawl = False
+                        # TODO: This is temporary fix to scrape all (duplicate) articles.
+                        #  Set to False to stop stop scraping once older articles encountered
+                        do_crawl = True
+                        url_list.append(
+                            link
+                        )  # TODO: Remove this line to stop scraping on encountering older articles
                     else:
                         url_list.append(link)
 
@@ -362,7 +389,9 @@ class Crawler:
                     if coll.count_documents({"postURL": link}, {}):
                         # post already in db - stop crawling
                         self.log_adapter.info("Found older posts. Stopping crawl...")
-                        do_crawl = False
+                        # TODO: This is temporary fix to scrape all (duplicate) articles.
+                        #  Set to False to stop stop scraping once older articles encountered
+                        do_crawl = True
 
                 # Wait to load page
                 if if_sleep:
