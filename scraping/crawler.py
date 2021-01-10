@@ -59,10 +59,18 @@ class Crawler:
             scraping_url, constants.SCRAPING_DB_DEV, constants.SCRAPING_DB_COLL_STORIES
         )
 
+        counter = 0
         for url in url_list:
             if not coll.count_documents({"postURL": url}, {}):
                 # URL not in DB
                 new_urls_list.append(url)
+            else:
+                counter += 1
+
+        self.log_adapter.info(f"{counter} duplicate articles found")
+
+        if len(new_urls_list) == 0:
+            self.log_adapter.info(f"No new URLs to scrape. Ignore future messages...")
 
         return new_urls_list
 
@@ -134,9 +142,6 @@ class Crawler:
         driver = utils.get_driver(self.crawler_url, driver)
 
         count = 0
-        cookie_accept_button = driver.find_elements_by_xpath(
-            "/html/body/div[11]/button"
-        )[0]
 
         scraping_url = utils.get_scraping_url(self.mode)
         coll = db.get_collection(
@@ -147,6 +152,13 @@ class Crawler:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         # wait for 5 seconds for cookie accept button to load
         driver.implicitly_wait(5)
+        # get cookie accept button
+        div_num = 11
+        if self.crawler_url.split("/")[-1] in ["punjabi", "assamese"]:
+            div_num = 10
+        cookie_accept_button = driver.find_elements_by_xpath(
+            "/html/body/div[" + str(div_num) + "]/button"
+        )[0]
         try:
             cookie_accept_button.click()
             self.log_adapter.info(f"Cookie accepted!")
@@ -193,7 +205,7 @@ class Crawler:
                 link = a.get_attribute("href")
                 if coll.count_documents({"postURL": link}, {}):
                     # post already in db - stop crawling
-                    self.log_adapter.info("Found older posts. Stopping crawl...")
+                    # self.log_adapter.info("Found older posts. Stopping crawl...")
                     # TODO: This is temporary fix to scrape all (duplicate) articles.
                     #  Set to False to stop stop scraping once older articles encountered
                     do_crawl = True
@@ -255,12 +267,12 @@ class Crawler:
                 # 12 story layout
                 # 1 link
                 link = tree.xpath(
-                    "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[1]/a"
+                    "/html/body/div[1]/div[2]/div/div[2]/div[3]/div/div[1]/div[1]/a"
                 )
                 link = link[0].get("href") + "/"
                 if coll.count_documents({"postURL": link}, {}):
                     # post already in db - stop crawling
-                    self.log_adapter.info("Found older posts. Stopping crawl...")
+                    # self.log_adapter.info("Found older posts. Stopping crawl...")
                     # TODO: This is temporary fix to scrape all (duplicate) articles.
                     #  Set to False to stop stop scraping once older articles encountered
                     do_crawl = True
@@ -277,7 +289,7 @@ class Crawler:
                     link = link.get("href") + "/"
                     if coll.count_documents({"postURL": link}, {}):
                         # post already in db - stop crawling
-                        self.log_adapter.info("Found older posts. Stopping crawl...")
+                        # self.log_adapter.info("Found older posts. Stopping crawl...")
                         # TODO: This is temporary fix to scrape all (duplicate) articles.
                         #  Set to False to stop stop scraping once older articles encountered
                         do_crawl = True
@@ -288,12 +300,12 @@ class Crawler:
                         url_list.append(link)
                 # 1 link
                 link = tree.xpath(
-                    "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[3]/div[1]/a[2]"
+                    "/html/body/div[1]/div[2]/div/div[2]/div[3]/div/div[1]/div[3]/div[1]/a[2]"
                 )
                 link = link[0].get("href") + "/"
                 if coll.count_documents({"postURL": link}, {}):
                     # post already in db - stop crawling
-                    self.log_adapter.info("Found older posts. Stopping crawl...")
+                    # self.log_adapter.info("Found older posts. Stopping crawl...")
                     # TODO: This is temporary fix to scrape all (duplicate) articles.
                     #  Set to False to stop stop scraping once older articles encountered
                     do_crawl = True
@@ -304,12 +316,12 @@ class Crawler:
                     url_list.append(link)
                 # 1 link
                 link = tree.xpath(
-                    "/html/body/div[1]/div[2]/div/div[2]/div[2]/div/div[1]/div[3]/div[2]/a[2]"
+                    "/html/body/div[1]/div[2]/div/div[2]/div[3]/div/div[1]/div[3]/div[2]/a[2]"
                 )
                 link = link[0].get("href") + "/"
                 if coll.count_documents({"postURL": link}, {}):
                     # post already in db - stop crawling
-                    self.log_adapter.info("Found older posts. Stopping crawl...")
+                    # self.log_adapter.info("Found older posts. Stopping crawl...")
                     # TODO: This is temporary fix to scrape all (duplicate) articles.
                     #  Set to False to stop stop scraping once older articles encountered
                     do_crawl = True
@@ -327,7 +339,7 @@ class Crawler:
                     link = link.get("href") + "/"
                     if coll.count_documents({"postURL": link}, {}):
                         # post already in db - stop crawling
-                        self.log_adapter.info("Found older posts. Stopping crawl...")
+                        # self.log_adapter.info("Found older posts. Stopping crawl...")
                         # TODO: This is temporary fix to scrape all (duplicate) articles.
                         #  Set to False to stop stop scraping once older articles encountered
                         do_crawl = True
@@ -388,7 +400,7 @@ class Crawler:
                 for link in url_list:
                     if coll.count_documents({"postURL": link}, {}):
                         # post already in db - stop crawling
-                        self.log_adapter.info("Found older posts. Stopping crawl...")
+                        # self.log_adapter.info("Found older posts. Stopping crawl...")
                         # TODO: This is temporary fix to scrape all (duplicate) articles.
                         #  Set to False to stop stop scraping once older articles encountered
                         do_crawl = True

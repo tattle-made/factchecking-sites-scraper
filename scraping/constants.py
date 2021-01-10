@@ -63,7 +63,7 @@ SCRAPING_DB_COLL_STORIES = "stories"
 RETRY_COUNT = 3
 
 # TODO: crawl page count
-CRAWL_PAGE_COUNT = 1000
+CRAWL_PAGE_COUNT = 1
 
 # data uploader
 UNK_CONTENT_TYPE = "unk_content_type"

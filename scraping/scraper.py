@@ -128,7 +128,7 @@ class Scraper:
                 )
                 return False
             else:
-                log_adapter.info(f"Crawling from date {self.scrape_from}")
+                # log_adapter.info(f"Crawling from date {self.scrape_from}")
                 url_list = getattr(crawl, self.get_links_fn)(
                     self.scrape_from, self.if_sleep
                 )
@@ -141,7 +141,7 @@ class Scraper:
                     utils.save_crawl_time(self.crawler_url)
                     log_adapter.info(f"{self.crawler_url} crawl succeeded!")
         else:
-            log_adapter.info(f"Crawling since last crawl date {time_last_scrape}")
+            # log_adapter.info(f"Crawling since last crawl date {time_last_scrape}")
             url_list = getattr(crawl, self.get_links_fn)(
                 self.scrape_from, self.if_sleep
             )

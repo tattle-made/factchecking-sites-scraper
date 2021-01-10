@@ -29,8 +29,13 @@ def setup_logger(name: str) -> logging.Logger:
     )
     logger = logging.getLogger(name)
 
+    # Prevent multiple print statements
+    # https://stackoverflow.com/questions/6729268/log-messages-appearing-twice-with-python-logging
+    logger.propagate = False
+
+    # Prevent multiple print statements
+    # Handlers need to have different var names to prevent multiple print statements
     if not logger.hasHandlers():
-        # Prevent multiple print statements by checking if handler exists
         # create console handler
         handler = logging.StreamHandler()
         handler.setLevel(logging.DEBUG)
@@ -41,15 +46,15 @@ def setup_logger(name: str) -> logging.Logger:
         logger.addHandler(handler)
 
         # create file handler
-        handler = logging.FileHandler(
+        file_handler = logging.FileHandler(
             constants.LOG_FILE, "a", encoding=None, delay=True
         )
-        handler.setLevel(logging.INFO)
+        file_handler.setLevel(logging.INFO)
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
     return logger
 
