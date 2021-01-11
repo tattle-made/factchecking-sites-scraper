@@ -154,7 +154,7 @@ class EmbeddedMediaDownloader:
                                 break
 
                     if is_match:
-                        self.log_adapter.info(
+                        self.log_adapter.debug(
                             f"Skipping {filename} download. File already exists."
                         )
                     else:
@@ -266,7 +266,7 @@ class EmbeddedMediaDownloader:
                 filepath = os.path.join(constants.IMAGE_DOWNLOAD_FILEPATH, filename)
 
                 if os.path.exists(filepath):
-                    self.log_adapter.info(
+                    self.log_adapter.debug(
                         f"Skipping {filename} download. File already exists."
                     )
                 else:
