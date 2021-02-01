@@ -5,9 +5,9 @@
 Updated from https://ifcncodeofprinciples.poynter.org/signatories
 
 How to read Tattle Status Column: 
-Running: Scraper is tested and currently pushing data to production database.
-Testing: Scraper is being tested on development database. Possibly needs improvement. 
-NA: Scraper never written. 
+*Running:* Scraper is tested and currently pushing data to production database.
+*Testing:* Scraper is being tested on development database. Possibly needs improvement. 
+*NA:* Scraper never written. 
 
 
 
