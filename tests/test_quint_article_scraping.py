@@ -1,9 +1,9 @@
 import unittest
 
-from factchecking_news_sites import get_content_quint
-from factchecking_news_sites import setup_driver, get_driver
+from scraping.factchecking_news_sites import get_content_quint
+from scraping.factchecking_news_sites import setup_driver, get_driver
 
-ARTICLE_URL='https://www.thequint.com/news/webqoof/mp-girl-passed-off-as-one-whose-clothes-were-found-in-tahir-hussain-house'
+ARTICLE_URL = "https://www.thequint.com/news/webqoof/mp-girl-passed-off-as-one-whose-clothes-were-found-in-tahir-hussain-house"
 
 driver = setup_driver()
 driver2 = get_driver(ARTICLE_URL, driver, wait_time=3)
@@ -30,19 +30,20 @@ expected_response = {
         "Also Read : Fake Posts Shared to Claim Justice Muralidhar Worked Under Cong MP",
         "(Not convinced of a post or information you came across online and want it verified? Send us the details on Whatsapp at 9643651818, or e-mail it to us at webqoof@thequint.com and we'll fact-check it for you. You can also read all our fact-checked stories here.)",
         "We'll get through this! Meanwhile, here's all you need to know about the Coronavirus outbreak to keep yourself safe, informed, and updated.",
-        "(Make sure you don't miss fresh news updates from us. Click here to stay updated)"
+        "(Make sure you don't miss fresh news updates from us. Click here to stay updated)",
     ],
     "video": [],
     "image": [
         "https://gumlet.assettype.com/thequint%2F2020-03%2Fd7b4fc48-42d1-4ce1-9006-cb395c8bd4cd%2F1.JPG?auto=format%2Ccompress&w=640",
         "https://gumlet.assettype.com/thequint%2F2020-03%2F6818bc7a-8c86-4a68-81be-77213332450f%2F2.JPG?auto=format%2Ccompress&w=640",
         "https://gumlet.assettype.com/thequint%2F2020-03%2F69268973-f1ce-40a1-a427-07846395848b%2F4.JPG?auto=format%2Ccompress&w=640",
-        "https://gumlet.assettype.com/thequint%2F2020-03%2Fec8bd2f0-866d-4de8-bcd9-6288c260f2d9%2Fdainik1.png?auto=format%2Ccompress&w=640"
+        "https://gumlet.assettype.com/thequint%2F2020-03%2Fec8bd2f0-866d-4de8-bcd9-6288c260f2d9%2Fdainik1.png?auto=format%2Ccompress&w=640",
     ],
     "tweet": [],
     "facebook": [],
-    "instagram": []
+    "instagram": [],
 }
+
 
 class TestQuintArticleScraping(unittest.TestCase):
     def test_quint_content_value(self):

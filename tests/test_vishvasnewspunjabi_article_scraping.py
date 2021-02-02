@@ -1,19 +1,26 @@
 import unittest
-from factchecking_news_sites import get_tree, get_metadata_vishvasnews, get_content_vishvasnews, get_post_vishvasnews
+from scraping.factchecking_news_sites import (
+    get_tree,
+    get_metadata_vishvasnews,
+    get_content_vishvasnews,
+    get_post_vishvasnews,
+)
 
 ARTICLE_URL = "https://www.vishvasnews.com/punjabi/society/fact-check-corona-virus-cannot-cure-by-gargling-with-warm-salty-water/"
 tree = get_tree(ARTICLE_URL)
 metadata = get_metadata_vishvasnews(tree)
-body_div="div[@class='lhs-area']"
-body_elements = tree.xpath(f'//{body_div}/*[self::p or self::h2]')
+body_div = "div[@class='lhs-area']"
+body_elements = tree.xpath(f"//{body_div}/*[self::p or self::h2]")
 content = get_content_vishvasnews(tree, body_elements, body_div=body_div)
-post = get_post_vishvasnews(ARTICLE_URL, langs=["punjabi"], body_div="div[@class='lhs-area']")
+post = get_post_vishvasnews(
+    ARTICLE_URL, langs=["punjabi"], body_div="div[@class='lhs-area']"
+)
 
 expected_metadata = {
     "headline": "Fact Check: ਗਰਮ ਪਾਣੀ ਵਿਚ ਨਮਕ ਜਾਂ ਵਿਨੇਗਰ ਪਾ ਕੇ ਗਰਾਰੇ ਕਰਨ ਨਾਲ ਨਹੀਂ ਠੀਕ ਹੁੰਦਾ ਹੈ ਕੋਰੋਨਾ ਵਾਇਰਸ, ਫਰਜ਼ੀ ਪੋਸਟ ਹੋ ਰਿਹਾ ਹੈ ਵਾਇਰਲ",
     "author": "Abhishek Parashar",
     "author_link": "https://www.vishvasnews.com/punjabi/author/abhishek-parashar/",
-    "date_updated": "March 26, 2020"
+    "date_updated": "March 26, 2020",
 }
 
 expected_content = {
@@ -31,7 +38,7 @@ expected_content = {
         "ਵਿਸ਼ਵਾਸ ਨਿਊਜ਼ ਨੇ ਇਸਨੂੰ ਲੈ ਕੇ ਆਯੂਸ਼ ਮੰਤਰਾਲੇ ਦੇ ਫਾਰਮੋਕੋਵਿਲੀਜੈਂਸ ਅਫਸਰ ਡਾਕਟਰ ਵਿਮਲ ਐਨ ਨਾਲ ਗੱਲ ਕੀਤੀ। ਉਨ੍ਹਾਂ ਨੇ ਕਿਹਾ, ‘ਇਹ ਕੋਰੋਨਾ ਵਾਇਰਸ ਦੇ ਸੰਕ੍ਰਮਣ ਦਾ ਇਲਾਜ ਨਹੀਂ ਹੈ। ਇਸ ਗੱਲ ਦੇ ਵੀ ਘੱਟ ਸਬੂਤ ਹਨ ਕਿ ਗਰਮ ਪਾਣੀ ਵਿਚ ਨਮਕ ਪਾ ਕੇ ਗਰਾਰੇ ਕਰਨ ਨਾਲ ਸਰਦੀ ਤੋਂ ਰਾਹਤ ਮਿਲਦੀ ਹੈ ਪਰ ਇਸਦਾ ਮਤਲਬ ਇਹ ਨਹੀਂ ਕਿ ਇਸ ਨਾਲ ਕੋਰੋਨਾ ਵਾਇਰਸ ਦਾ ਇਲਾਜ ਕੀਤਾ ਜਾ ਸਕਦਾ ਹੈ’",
         "ਇਸ ਪੋਸਟ ਨੂੰ ਕਈ ਸਾਰੇ ਯੂਜ਼ਰ ਸ਼ੇਅਰ ਕਰ ਰਹੇ ਹਨ ਅਤੇ ਇਨ੍ਹਾਂ ਵਿਚੋਂ ਦੀ ਹੀ ਇੱਕ ਹੈ Vijay Sharma ਨਾਂ ਦੀ ਫੇਸਬੁੱਕ ਪ੍ਰੋਫ਼ਾਈਲ।",
         "\r\n\r\n ਨਤੀਜਾ:\r\n\r\n \r\nਗਰਮ ਪਾਣੀ ਵਿਚ ਨਮਕ ਜਾਂ ਵਿਨੇਗਰ ਪਾ ਕੇ ਗਰਾਰੇ ਕਰਨ ਨਾਲ ਕੋਰੋਨਾ ਵਾਇਰਸ ਠੀਕ ਹੁੰਦਾ ਹੈ ਦਾ ਵਾਇਰਲ ਹੋ ਰਿਹਾ ਦਾਅਵਾ ਫਰਜ਼ੀ ਹੈ।\n",
-        "Tags"
+        "Tags",
     ],
     "video": [],
     "image": [
@@ -44,12 +51,13 @@ expected_content = {
         "https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/false-emoji.png",
         "https://www.vishvasnews.com/wp-content/uploads/2019/07/abhishekprashar-150x150.jpg",
         "https://www.vishvasnews.com/wp-content/uploads/2019/07/bhagvantsingh-150x150.jpeg",
-        "https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/quiz_img.png"
+        "https://www.vishvasnews.com/wp-content/themes/vishvasnews-advanced/images/quiz_img.png",
     ],
     "tweet": [],
     "facebook": [],
-    "instagram": []
+    "instagram": [],
 }
+
 
 class TestVishvasNewsPunjabiArticleScraping(unittest.TestCase):
     def test_metadata_value(self):
@@ -59,8 +67,7 @@ class TestVishvasNewsPunjabiArticleScraping(unittest.TestCase):
         self.assertDictEqual(content, expected_content)
 
     def test_post_structure(self):
-        self.assertIn('postID', post)
-        self.assertIn('postURL', post)
-        self.assertIn('author', post)
-        self.assertIn('docs', post)
-
+        self.assertIn("postID", post)
+        self.assertIn("postURL", post)
+        self.assertIn("author", post)
+        self.assertIn("docs", post)

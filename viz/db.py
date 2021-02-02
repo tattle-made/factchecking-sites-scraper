@@ -1,5 +1,4 @@
 from pymongo import MongoClient
-from os.path import isfile
 from os import listdir, environ
 from datetime import date, datetime
 import uuid
@@ -7,9 +6,11 @@ import sqlite3
 import numpy as np
 import requests
 from io import BytesIO
+
 # https://stackoverflow.com/questions/38076220/python-mysqldb-connection-in-a-class
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # TODO: is a db agnostic wrapper worth it? prob not
@@ -49,7 +50,7 @@ class sqlDatabase:
         def im2bin(img):
             stream = BytesIO()
             img.save(stream, format="JPEG")
-            img_bytes = stream.get_value()
+            # img_bytes = stream.get_value()
 
         # Converts np.array to TEXT when inserting
         sqlite3.register_adapter(np.ndarray, adapt_array)
@@ -61,8 +62,7 @@ class sqlDatabase:
         self.setup()
 
         self.db = None
-        self._conn = sqlite3.connect(
-            filename, detect_types=sqlite3.PARSE_DECLTYPES)
+        self._conn = sqlite3.connect(filename, detect_types=sqlite3.PARSE_DECLTYPES)
         self._cursor = self._conn.cursor()
         self.exists = self._cursor.fetchone()
 
@@ -78,7 +78,10 @@ class sqlDatabase:
 
     def get_table_schema(self, table_name):
         return self.query(
-            'SELECT sql FROM sqlite_master WHERE type="table" and name="' + table_name + '"')
+            'SELECT sql FROM sqlite_master WHERE type="table" and name="'
+            + table_name
+            + '"'
+        )
 
     def get_tablesize(self, table_name):
         return self.query("SELECT COUNT(*) from " + table_name)
@@ -118,7 +121,8 @@ class sqlDatabase:
 
     def insert_values(self, table_name, values):
         # this is a stupid method: remove
-        query = 'insert into' + table_name + 'values' + values
+        # query = "insert into" + table_name + "values" + values
+        return None
 
     def get_db(self):
         # mongo_url = os.environ['MONGO_URL']
@@ -135,7 +139,7 @@ class mongoDB:
     # https://www.mongodb.com/blog/post/6-rules-of-thumb-for-mongodb-schema-design-part-1
     # https://www.digitalocean.com/community/tutorials/how-to-back-up-restore-and-migrate-a-mongodb-database-on-ubuntu-14-04
     def __init__(self):
-        mongo_url = environ['MONGO_URL']
+        mongo_url = environ["MONGO_URL"]
         cli = MongoClient(mongo_url)
         self.cli = cli
         self.documents = self.cli.documents
@@ -176,17 +180,33 @@ class mongoDB:
 
 def aws_connection():
     import boto3
-    ACCESS_ID = environ['ACCESS_ID']
-    ACCESS_KEY = environ['ACCESS_KEY']
 
-    s3 = boto3.client('s3', region_name='ap-south-1',
-                      aws_access_key_id=ACCESS_ID, aws_secret_access_key=ACCESS_KEY)
+    ACCESS_ID = environ["ACCESS_ID"]
+    ACCESS_KEY = environ["ACCESS_KEY"]
+
+    s3 = boto3.client(
+        "s3",
+        region_name="ap-south-1",
+        aws_access_key_id=ACCESS_ID,
+        aws_secret_access_key=ACCESS_KEY,
+    )
 
     return s3
 
 
-def default_db_doc(doc_id=None, has_image=False, has_text=False, date_added=datetime.now(), date_updated=datetime.now(), tags=[], text=None, lang=None, text_vec=None, image_vec=None):
-    if doc_id == None:
+def default_db_doc(
+    doc_id=None,
+    has_image=False,
+    has_text=False,
+    date_added=datetime.now(),
+    date_updated=datetime.now(),
+    tags=[],
+    text=None,
+    lang=None,
+    text_vec=None,
+    image_vec=None,
+):
+    if doc_id is None:
         doc_id = uuid.uuid4().hex
     doc = {
         "doc_id": doc_id,
@@ -198,55 +218,56 @@ def default_db_doc(doc_id=None, has_image=False, has_text=False, date_added=date
         "text": text,
         "lang": lang,
         "text_vec": text_vec,
-        "image_vec": image_vec
+        "image_vec": image_vec,
     }
 
     return doc
 
 
 def s3ToDB(objs, url_prefix, img_model, docs):
-    from analyzer import image_from_url, doc2vec
+    from viz.analyzer import image_from_url, doc2vec
 
-    for f in objs['Contents']:
-        url = url_prefix + f['Key']
+    for f in objs["Contents"]:
+        url = url_prefix + f["Key"]
         # urls += [url]
 
-        content_type = requests.get(url).headers['Content-Type']
-        print(f['Key'], content_type)
+        content_type = requests.get(url).headers["Content-Type"]
+        print(f["Key"], content_type)
         # better check for content-type
-        if content_type[:5] == 'image':
+        if content_type[:5] == "image":
             try:
                 # fails with pngs
                 img = image_from_url(url)
-                img_bytes = img['image']
+                img_bytes = img["image"]
                 image_vec = img_model.extract_feature(img_bytes)
 
-                doc = default_db_doc(
-                    has_image=True, image_vec=image_vec.tolist())
+                doc = default_db_doc(has_image=True, image_vec=image_vec.tolist())
                 docs.insert_one(doc)
             except Exception as e:
-                print('error', e)
+                print("error", e)
                 continue
 
-            print('added image: ', doc['doc_id'])
+            print("added image: ", doc["doc_id"])
 
-        elif content_type[:4] == 'text':
+        elif content_type[:4] == "text":
             text = requests.get(url).text
             if len(text) == 0:
                 continue
 
             textvec, lang = doc2vec(text)
 
-            doc = default_db_doc(has_text=True, text=text,
-                                 lang=lang, text_vec=textvec.tolist())
+            doc = default_db_doc(
+                has_text=True, text=text, lang=lang, text_vec=textvec.tolist()
+            )
             docs.insert_one(doc)
 
-            print('added text: ', doc['doc_id'])
+            print("added text: ", doc["doc_id"])
 
         # else: handle text+image case
 
+
 def create_mongo_db():
-    from analyzer import ResNet18
+    from viz.analyzer import ResNet18
 
     db = mongoDB()
     docs = db.docs
@@ -254,30 +275,30 @@ def create_mongo_db():
     img_model = ResNet18()
 
     s3 = aws_connection()
-    
-    buckets = ['tattle-services', 'tattle-priors']
+
+    buckets = ["tattle-services", "tattle-priors"]
     for bucket in buckets:
         objs = s3.list_objects(Bucket=bucket)
 
-        url_prefix = f'https://{bucket}.s3.ap-south-1.amazonaws.com/'
+        url_prefix = f"https://{bucket}.s3.ap-south-1.amazonaws.com/"
 
         s3ToDB(objs, url_prefix, img_model, docs)
-    
-    print('mongo db setup complete')
+
+    print("mongo db setup complete")
 
 
-def create_sql_db(filename='docs_sqlite_db.db'):
-    from analyzer import doc2vec, ResNet18
+def create_sql_db(filename="docs_sqlite_db.db"):
+    from viz.analyzer import doc2vec, ResNet18
     from PIL import Image
 
     db = sqlDatabase(filename)
 
     # https://www.tutorialspoint.com/sqlite/sqlite_data_types.htm
-    insert_table_query = 'CREATE TABLE documents (doc_id integer primary key, has_image int, has_text int, date_added text, date_updated text, tags text, textdata text, lang text, vec array, imagedata blob, imagemetadata text, imagevec array)'
+    insert_table_query = "CREATE TABLE documents (doc_id integer primary key, has_image int, has_text int, date_added text, date_updated text, tags text, textdata text, lang text, vec array, imagedata blob, imagemetadata text, imagevec array)"
     db.execute(insert_table_query)
 
-    texts_folder = listdir('tests/texts/')
-    images_folder = listdir('tests/images/')
+    texts_folder = listdir("tests/texts/")
+    images_folder = listdir("tests/images/")
 
     # defaults
     has_text = 1
@@ -290,16 +311,30 @@ def create_sql_db(filename='docs_sqlite_db.db'):
     imagevec = None
 
     for file in texts_folder:
-        with open('tests/texts/' + file, 'r') as f:
+        with open("tests/texts/" + file, "r") as f:
             textdata = f.read()
             if len(textdata) == 0:
                 continue
-            vec, lang = doc2vec(textdata, 'word2vec/word2vec.db')
+            vec, lang = doc2vec(textdata, "word2vec/word2vec.db")
 
-            data = (has_text, has_image, date_added, date_updated,
-                    tags, textdata, lang, vec, imagedata, imagemetadata, imagevec)
+            data = (
+                has_text,
+                has_image,
+                date_added,
+                date_updated,
+                tags,
+                textdata,
+                lang,
+                vec,
+                imagedata,
+                imagemetadata,
+                imagevec,
+            )
 
-        db.execute('INSERT into documents(has_image, has_text, date_added, date_updated, tags, textdata, lang, vec, imagedata, imagemetadata, imagevec) values(?,?,?,?,?,?,?,?,?,?,?)', data)
+        db.execute(
+            "INSERT into documents(has_image, has_text, date_added, date_updated, tags, textdata, lang, vec, imagedata, imagemetadata, imagevec) values(?,?,?,?,?,?,?,?,?,?,?)",
+            data,
+        )
 
     # defaults
     has_text = 0
@@ -314,16 +349,30 @@ def create_sql_db(filename='docs_sqlite_db.db'):
     model = ResNet18()
 
     for file in images_folder:
-        img = Image.open('tests/images/' + file)
+        img = Image.open("tests/images/" + file)
         # assert(type(img) == Image.Image)
         imagedata = img.tobytes()
-        imagemetadata = str({'mode': img.mode, 'size': img.size})
+        imagemetadata = str({"mode": img.mode, "size": img.size})
         imagevec = model.extract_feature(img)
 
-        data = (has_text, has_image, date_added, date_updated,
-                tags, textdata, lang, vec, imagedata, imagemetadata, imagevec)
+        data = (
+            has_text,
+            has_image,
+            date_added,
+            date_updated,
+            tags,
+            textdata,
+            lang,
+            vec,
+            imagedata,
+            imagemetadata,
+            imagevec,
+        )
 
-        db.execute('INSERT into documents(has_image, has_text, date_added, date_updated, tags, textdata, lang, vec, imagedata, imagemetadata, imagevec) values(?,?,?,?,?,?,?,?,?,?,?)', data)
+        db.execute(
+            "INSERT into documents(has_image, has_text, date_added, date_updated, tags, textdata, lang, vec, imagedata, imagemetadata, imagevec) values(?,?,?,?,?,?,?,?,?,?,?)",
+            data,
+        )
 
     db.commit()
     db._conn.close()

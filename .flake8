@@ -1,0 +1,23 @@
+[flake8]
+max-line-length = 88
+max-complexity = 18
+select =
+    # https://flake8.pycqa.org/en/latest/user/violations.html#selecting-violations-with-flake8
+    # All E class violations are “errors” reported by pycodestyle
+    E,
+    # All F class violations are reported by pyflakes
+    F,
+    # All W class violations are “warnings” reported by pycodestyle
+    W
+ignore =
+    # https://pycodestyle.pycqa.org/en/latest/intro.html#error-codes
+    # E203 	whitespace before ‘:’
+    E203,
+    # E266 	too many leading ‘#’ for block comment
+    E266,
+    # E501 (^) 	line too long (82 > 79 characters)
+    E501,
+    # F541 f-string is missing placeholders
+    F541
+    # W503 (*) 	line break before binary operator
+    W503
