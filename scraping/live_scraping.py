@@ -108,7 +108,7 @@ sites = {
         "getPost": get_post_altnews,
     },
     "boomlive.in": {
-        "url": "https://www.boomlive.in/fake-news",
+        "url": "https://www.boomlive.in/fact-check",
         "langs": ["english"],
         "domain": "boomlive.in",
         "body_div": 'div[@class="story"]',
@@ -117,7 +117,7 @@ sites = {
         "getPost": get_post_boomlive,
     },
     "hindi.boomlive.in": {
-        "url": "https://hindi.boomlive.in/fake-news",
+        "url": "https://hindi.boomlive.in/fact-check",
         "langs": ["hindi"],
         "domain": "hindi.boomlive.in",
         "body_div": 'div[@class="story"]',
@@ -126,7 +126,7 @@ sites = {
         "getPost": get_post_boomlive,
     },
     "bangla.boomlive.in": {
-        "url": "https://bangla.boomlive.in/fake-news",
+        "url": "https://bangla.boomlive.in/fact-check",
         "langs": ["bengali"],
         "domain": "bangla.boomlive.in",
         "body_div": 'div[@class="story"]',
