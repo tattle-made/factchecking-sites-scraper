@@ -3,10 +3,10 @@
 
 import sys
 
-print('hi')
+print("hi")
 print(sys.path)
 
-#test should do the following
+# test should do the following
 # see if it can fetch data
 # check for structure
 # check for value
@@ -21,8 +21,3 @@ print(sys.path)
 #     print(content)
 
 # test_quint()
-
-
-
-
-

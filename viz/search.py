@@ -1,9 +1,8 @@
 import numpy as np
 from tqdm import tqdm
-import os
-from pymongo import MongoClient
-from db import mongoDB, sqlDatabase
-from analyzer import doc2vec, img2vec
+from viz.db import mongoDB, sqlDatabase
+from viz.analyzer import doc2vec, img2vec
+
 
 class ImageSearch:
     def __init__(self, db_type, db_filename, threshold=20):
@@ -19,27 +18,28 @@ class ImageSearch:
         builds a set of image features in self.vecs
         from those stored in mongodb
         """
-        if self.db_type == 'mongo':
+        if self.db_type == "mongo":
             db = mongoDB()
             docs = db.docs
 
             cur = docs.find({"has_image": True})
             total_docs = docs.count_documents({"has_image": True})
             for doc in tqdm(cur, total=total_docs):
-                if doc.get('image_vec') is None:
+                if doc.get("image_vec") is None:
                     continue
-                self.ids.append(doc.get('doc_id'))
-                self.vecs.append(doc.get('image_vec'))
-        elif self.db_type == 'sqlite':
+                self.ids.append(doc.get("doc_id"))
+                self.vecs.append(doc.get("image_vec"))
+        elif self.db_type == "sqlite":
             db = sqlDatabase(self.db_filename)
             # TODO: a nicer way to get count
             total_docs = db.query("SELECT COUNT(doc_id) from documents")[0][0]
             cur = db.query(
-                "SELECT doc_id, imagevec from documents where imagevec != 'null'")
+                "SELECT doc_id, imagevec from documents where imagevec != 'null'"
+            )
             for doc in tqdm(cur, total=total_docs):
                 self.ids.append(doc[0])
                 self.vecs.append(doc[1])
-        elif self.db_type == 'testing':
+        elif self.db_type == "testing":
             """setup up local testing dataset
 
             db_filename {list(tuple)}: [(doc_id, vec),...]
@@ -51,14 +51,14 @@ class ImageSearch:
                     self.ids.append(i)
                     self.vecs.append(vec.tolist())
                 except Exception as e:
-                    print(f'{i}: {e}')
+                    print(f"{i}: {e}")
 
         self.vecs = np.array(self.vecs)
 
     def update(self, doc_id, vec):  # add image to vec db
         self.ids.append(doc_id)
         self.vecs = np.vstack((self.vecs, vec))
-        print('updated')
+        print("updated")
 
     def search(self, vec, n=1):
         """
@@ -69,18 +69,19 @@ class ImageSearch:
         # np.broadcasting search over entire database
         dists = np.linalg.norm(self.vecs - vec, axis=1)
         idx = np.argsort(dists)
-        
+
         ret = []
         for i in range(n):
             if dists[idx[i]] < self.thresh:
                 ret.append((self.ids[idx[i]], dists[idx[i]]))
         if len(ret) == 0:
             return [(None, None)]
-        else: 
+        else:
             return ret
 
+
 class DocSearch:
-    def __init__(self, db_type='mongo', db_filename=None, threshold=1):
+    def __init__(self, db_type="mongo", db_filename=None, threshold=1):
         self.ids = []
         self.vecs = []
         self.thresh = threshold
@@ -89,27 +90,26 @@ class DocSearch:
         self.build()
 
     def build(self):
-        if self.db_type == 'mongo':
+        if self.db_type == "mongo":
             db = mongoDB()
             docs = db.docs
 
             cur = docs.find({"has_text": True})
             total_docs = docs.count_documents({"has_text": True})
             for doc in tqdm(cur, total=total_docs):
-                if doc.get('text_vec') is None:
+                if doc.get("text_vec") is None:
                     continue
-                self.ids.append(doc.get('doc_id'))
-                self.vecs.append(doc.get('text_vec'))
-        elif self.db_type == 'sqlite':
+                self.ids.append(doc.get("doc_id"))
+                self.vecs.append(doc.get("text_vec"))
+        elif self.db_type == "sqlite":
             db = sqlDatabase(self.db_filename)
             # TODO: a nicer way to get count
             total_docs = db.query("SELECT COUNT(doc_id) from documents")[0][0]
-            cur = db.query(
-                "SELECT doc_id, vec from documents where vec != 'null'")
+            cur = db.query("SELECT doc_id, vec from documents where vec != 'null'")
             for doc in tqdm(cur, total=total_docs):
                 self.ids.append(doc[0])
                 self.vecs.append(doc[1])
-        elif self.db_type == 'testing':
+        elif self.db_type == "testing":
             """setup up local testing dataset
 
             db_filename {list(tuple)}: [(doc_id, vec),...]
@@ -118,7 +118,7 @@ class DocSearch:
                 vec, lang = doc2vec(doc)
                 if lang is None:
                     # bad example doc
-                    print(f'{vec}: doc no. {i}')
+                    print(f"{vec}: doc no. {i}")
                     continue
 
                 # insert template doc into search set
@@ -142,7 +142,7 @@ class DocSearch:
             vec = np.array(vec)
 
         if vec is None:
-            print('vec is None')
+            print("vec is None")
             return (None, None)
         dists = np.linalg.norm(self.vecs - vec, axis=1)
         idx = np.argsort(dists)

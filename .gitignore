@@ -116,3 +116,16 @@ tests/*.out
 tests/*.err
 .out
 .err
+
+# PyCharm
+.idea/
+
+# Scraper logs
+*.log
+*.err
+scraping/*.log
+scraping/*.err
+
+# out files
+*.pkl
+*.json

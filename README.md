@@ -5,14 +5,15 @@ One of Tattle's goals is to make stories fact-checking content circulated on cha
 ## Introduction
 This repository contains collection of scripts to scrape the factchecking sections of the following sites:
 
-- [altnews](https://www.altnews.in/): english + hindi  
+- [altnews](https://www.altnews.in/): english + hindi  (IFCN expired)
 - [quint](https://www.thequint.com/news/webqoof)
 - [boomlive](https://www.boomlive.in/): english + hindi + bangla
 - [vishvasnews](https://www.vishvasnews.com): hindi + english + punjabi + assamese
 - [indiatoday](https://www.indiatoday.in/fact-check)
 - [factly](https://factly.in/category/fact-check/fake-news/): english + telugu  
-- [factchecker.in](https://www.factchecker.in/): english
+- [factchecker.in](https://www.factchecker.in/): english  (IFCN expired)
 - [newsmobile.in](https://newsmobile.in/articles/category/nm-fact-checker):english
+
 At present Tattle only scrapes [IFCN](https://ifcncodeofprinciples.poynter.org/signatories) certified fact-checking sites. 
 
 ## Running Locally:
