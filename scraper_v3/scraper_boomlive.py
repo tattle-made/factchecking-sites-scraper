@@ -6,7 +6,7 @@ from datetime import date, datetime
 from dateutil.parser import parse
 from pyquery import PyQuery
 import pytz
-import json  #TODO: Discuss pickle vs json
+import json  #TODO: Discuss pickle vs json ; Decided JSON
 from bson import json_util
 from PIL import Image
 from io import BytesIO
@@ -25,12 +25,15 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+## Decided: For Constants generate config file. Avoid domain specific functions in common config. 
 
-MONGOURL = os.environ["SCRAPING_URL_REMOTE"]
+MONGOURL = os.environ["SCRAPING_URL_REMOTE"] 
+DB_NAME = os.environ["DB_NAME"]
+COLL_NAME = os.environ["COLL_NAME"]
+
 DB_NAME = "factcheck_sites_dev"
 COLL_NAME = "stories"
 CRAWL_PAGE_COUNT = 1
-DOMAIN = "boomlive.in"
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
@@ -88,8 +91,8 @@ def get_tree(url: str):
         except Exception as e:
             print(f"failed request: {e}")
             sleep(randint(5,10))
-    if "boomlive" in url:
-        html.encoding = "utf-8"
+    
+            html.encoding = "utf-8"
 
     tree = fromstring(html.text)
 
@@ -106,7 +109,7 @@ def restore_unicode(mangled):
 
 # ============================= CRAWLER BEGIN ========================    
 
-def crawler(domain_url, page_count) -> list: 
+def crawler(crawl_url, page_count) -> list: 
     """
     get story links based on url and page range
     extract all URLs in pages, discard URLs already in collection
@@ -119,13 +122,13 @@ def crawler(domain_url, page_count) -> list:
     for page in tqdm(range(CRAWL_PAGE_COUNT), desc="pages: "):
         
 
-        page_url = f"{domain_url}/{page}"
+        page_url = f"{crawl_url}/{page}"
         tree = get_tree(page_url)   
 
         permalinks = PyQuery(tree).find(".entry-title>a")
         
         for pl in permalinks:
-            link = domain_url + pl.attrib['href']
+            link = crawl_url + pl.attrib['href']
             if coll.count_documents({"postURL": link}, {}):
                 print(link, "exists in collection")
                 continue
@@ -141,8 +144,8 @@ def crawler(domain_url, page_count) -> list:
 
     # get unique urls
     url_list = list(set(url_list))
-    with open("url_list.json", 'w') as file:
-        json.dump(url_list,file)
+    with open("url_list.json", 'w') as f:
+        json.dump(url_list,f)
     return url_list
 
 # ============================================================================== 
@@ -153,18 +156,29 @@ def article_downloader(url):
     print("entered downloader")
     print(url)
     
-    response = requests.get(url, headers=headers)
+    # time_millis = int(time() * 1000)
+    file_name = f'/tmp/scraper_files/{url.split("/")[-2]}.html'
 
-    time_millis = int(time() * 1000)
-    file_name = f'{time_millis}_{url.split("/")[-2]}.html'
-
-    with open(file_name, "w") as file:
-        file.write(response.text)
+    if os.path.exists(file_name):
+        with open(file_name) as f:
+            html_text = f.read()
+    else:
+        response = requests.get(url, headers=headers)
+        html_text = response.text
+        with open(file_name, "w") as f:
+            f.write(html_text)
     
-    with open("url_link.text","w") as file:
-        file.write(url)
+    return html_text
 
-    return response
+    # response = requests.get(url, headers=headers)
+
+    # with open(file_name, "w") as f:
+    #     f.write(response.text)
+    
+    # with open("url_link.text","w") as f:
+    #     f.write(url)
+
+    # return response
 
 # ==============================================================================
 
@@ -255,10 +269,10 @@ def get_article_content(pq):
 
     return content
 
-def article_parser(response, story_url):
+def article_parser(html_text, story_url, domain, langs):
     
     print("entered parser")
-    pq = PyQuery(response.text)
+    pq = PyQuery(html_text)
     
     # generate post_id
     post_id = uuid.uuid4().hex
@@ -273,8 +287,8 @@ def article_parser(response, story_url):
 
     author = {"name": article_info["author"], "link": article_info["author_link"]}  
 
-    langs = None #TODO: Discuss 
-    domain = DOMAIN #TODO: Discuss 
+    langs = None #TODO: Discuss    (This should be defined in constants section within file)
+    
 
     article_content = get_article_content(pq)
     docs = []
@@ -296,7 +310,7 @@ def article_parser(response, story_url):
                 "content": v,  # text, if media_type = text or text in image/audio/video
                 "nowDate": now_date,  # date of scraping, same as date_accessed
                 "nowDate_UTC": now_date_utc,
-                "isGoodPrior": None,  # no of [-ve votes, +ve votes] TODO: Discuss
+                "isGoodPrior": None,  # no of [-ve votes, +ve votes] TODO: Discuss  Discussed: Look More
             }
             docs.append(doc)
         
@@ -339,8 +353,8 @@ def article_parser(response, story_url):
     time_millis = int(time() * 1000)
     file_name = f'{time_millis}_{url.split("/")[-2]}.json'
     json_data = json.dumps(post,  default=convert_timestamp)
-    with open(file_name, 'w') as file:
-        file.write(json_data)
+    with open(file_name, 'w') as f:
+        f.write(json_data)
     
     return post 
 
@@ -403,12 +417,14 @@ def media_downloader(post):
 
 
 # ============================= DATA UPLOADER BEGIN =======================
-def data_uploader(post,media_dict):
+def data_uploader(post,media_dict,html_text):
 
     print("entered data uploader")
 
     coll = get_collection(MONGOURL, DB_NAME, COLL_NAME)
     s3 = aws_connection()
+
+
 
     for doc in post["docs"]:
             filename = media_dict.get(doc["doc_id"])
@@ -420,5 +436,49 @@ def data_uploader(post,media_dict):
     
     coll.insert_one(post)
 
+    ### write html to s3
+    with open(file_name, 'w') as f:
+        f.write(html)
+
 # ==============================================================================
 
+# ============================= MAIN FUNCTION =======================
+
+def main():
+    print('boomlive scraper initiated')
+    boom_sites = {
+    "boomlive.in": {
+        "url": "https://www.boomlive.in/fact-check",
+        "langs": ["english"],
+        "domain": "boomlive.in",
+    },
+    "hindi.boomlive.in": {
+        "url": "https://hindi.boomlive.in/fact-check",
+        "langs": ["hindi"],
+        "domain": "hindi.boomlive.in",
+    },
+    "bangla.boomlive.in": {
+        "url": "https://bangla.boomlive.in/fact-check",
+        "langs": ["bengali"],
+        "domain": "bangla.boomlive.in",
+    },
+    
+    CRAWL_PAGE_COUNT = 2
+
+
+    for site in boom_sites:
+        print(site["domain"])
+        links = crawler("url,CRAWL_PAGE_COUNT)
+
+        print(links)
+
+        for link in links:
+            html_response = article_downloader(link)
+            post = article_parser(html_response,link,site["domain"],site["lang"])
+            media_items = media_downloader(post)
+            data_uploader(post,media_items,html)
+            # if (DEBUG==0):
+            # delete post, medi_items but not html_response
+
+if __name__ == "__main__":
+    main()
