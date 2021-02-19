@@ -27,17 +27,40 @@ load_dotenv()
 
 ## Decided: For Constants generate config file. Avoid domain specific functions in common config. 
 
+# ============================== CONSTANTS  ===========================
+
 MONGOURL = os.environ["SCRAPING_URL_REMOTE"] 
 DB_NAME = os.environ["DB_NAME"]
 COLL_NAME = os.environ["COLL_NAME"]
+DEBUG = 1
 
-DB_NAME = "factcheck_sites_dev"
-COLL_NAME = "stories"
 CRAWL_PAGE_COUNT = 1
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
     }
+
+FILE_PATH = "tmp/boomlive/"
+
+
+BOOM_SITES_DICT = {
+    "boomlive.in": {
+        "url": "https://www.boomlive.in/fact-check",
+        "langs": ["english"],
+        "domain": "boomlive.in",
+        },
+# "hindi.boomlive.in": {
+#     "url": "https://hindi.boomlive.in/fact-check",
+#     "langs": ["hindi"],
+#     "domain": "hindi.boomlive.in",
+# },
+# "bangla.boomlive.in": {
+#     "url": "https://bangla.boomlive.in/fact-check",
+#     "langs": ["bengali"],
+#     "domain": "bangla.boomlive.in",
+}
+
+
 
 # ============================== GET COLLECTION  ===========================
 
@@ -92,10 +115,8 @@ def get_tree(url: str):
             print(f"failed request: {e}")
             sleep(randint(5,10))
     
-            html.encoding = "utf-8"
-
+    html.encoding = "utf-8"
     tree = fromstring(html.text)
-
     return tree
 
 # ==============================================================================
@@ -115,51 +136,61 @@ def crawler(crawl_url, page_count) -> list:
     extract all URLs in pages, discard URLs already in collection
     """
     print("entered crawler")
-    url_list = []
 
-    coll = get_collection(MONGOURL, DB_NAME, COLL_NAME)
-
-    for page in tqdm(range(CRAWL_PAGE_COUNT), desc="pages: "):
-        
-
-        page_url = f"{crawl_url}/{page}"
-        tree = get_tree(page_url)   
-
-        permalinks = PyQuery(tree).find(".entry-title>a")
-        
-        for pl in permalinks:
-            link = crawl_url + pl.attrib['href']
-            if coll.count_documents({"postURL": link}, {}):
-                print(link, "exists in collection")
-                continue
-                    
-            # TODO: Remove this line to stop scraping on encountering older articles
-            else:
-                url_list.append(link)
-        sleep(randint(5,10))
+    file_name = f'{FILE_PATH}url_list.json'
+    if os.path.exists(file_name):
+        print("site already been crawled. See ", file_name)
+        with open(file_name, "r") as f:
+            url_list = json.load(f)
     
-        # TODO: crawl till a specific date 
+    else:
+        url_list = []
 
-      
+        coll = get_collection(MONGOURL, DB_NAME, COLL_NAME)
 
-    # get unique urls
-    url_list = list(set(url_list))
-    with open("url_list.json", 'w') as f:
-        json.dump(url_list,f)
+        for page in tqdm(range(CRAWL_PAGE_COUNT), desc="pages: "):
+            page_url = f"{crawl_url}/{page}"
+            tree = get_tree(page_url)   
+
+            if (tree == None):
+                print("No HTML on Link")
+                continue
+
+            permalinks = PyQuery(tree).find(".entry-title>a")
+            
+            for pl in permalinks:
+                link = crawl_url + pl.attrib['href']
+                if coll.count_documents({"postURL": link}, {}):
+                    print(link, "exists in collection")
+                    continue
+                else:
+                    print(link, "new to collection")
+                    url_list.append(link)
+            sleep(randint(5,10))
+        
+            # TODO: crawl till a specific date 
+
+
+        # get unique urls
+        url_list = list(set(url_list))
+        with open(file_name, 'w') as f:
+            json.dump(url_list,f)
+            
     return url_list
 
 # ============================================================================== 
 
 
 # ============================= ARTICLE DOWNLOADER BEGIN =======================
-def article_downloader(url): 
+def article_downloader(url, sub_folder): 
     print("entered downloader")
     print(url)
     
     # time_millis = int(time() * 1000)
-    file_name = f'/tmp/scraper_files/{url.split("/")[-2]}.html'
+    file_name = f'{sub_folder}story.html'
 
     if os.path.exists(file_name):
+        print("Article Already Downloaded. Loading from local.")
         with open(file_name) as f:
             html_text = f.read()
     else:
@@ -187,7 +218,6 @@ def article_downloader(url):
 
 def get_article_info(pq):
     headline = pq("h1.entry-title").text()
-    #import ipdb; ipdb.set_trace()
     datestr = pq('span.date>span').text().split('Updated')[0]
     datestr = parse(datestr).astimezone(pytz.timezone('Asia/Calcutta')).strftime("%B %d, %Y")
     author_name = pq('a.author-name').text()
@@ -269,93 +299,99 @@ def get_article_content(pq):
 
     return content
 
-def article_parser(html_text, story_url, domain, langs):
+def article_parser(html_text, story_url, domain, langs, sub_folder):
     
-    print("entered parser")
-    pq = PyQuery(html_text)
+    print("entered article_parser")
     
-    # generate post_id
-    post_id = uuid.uuid4().hex
-
-    article_info = get_article_info(pq)
-
-    # uniform date format
-    now_date = date.today().strftime("%B %d, %Y")
-    now_date_utc = datetime.utcnow()
-    date_updated = article_info["date_updated"]
-    date_updated_utc = datetime.strptime(date_updated, "%B %d, %Y")
-
-    author = {"name": article_info["author"], "link": article_info["author_link"]}  
-
-    langs = None #TODO: Discuss    (This should be defined in constants section within file)
-    
-
-    article_content = get_article_content(pq)
-    docs = []
-    for k, v in article_content.items():
-        if not v:  # empty list
-            continue
+    file_name = f'{sub_folder}post.json'
+    if os.path.exists(file_name):
+        print("story has already been parsed.See ",file_name)
+        with open(file_name, "r") as f:
+            post = json.load(f)
+         
+    else:
+        print("entered parser")
+        pq = PyQuery(html_text)
         
-        doc_id = uuid.uuid4().hex
+        # generate post_id
+        post_id = uuid.uuid4().hex
+
+        article_info = get_article_info(pq)
+
+        # uniform date format
+        now_date = date.today().strftime("%B %d, %Y")
+        now_date_utc = datetime.utcnow()
+        date_updated = article_info["date_updated"]
+        date_updated_utc = datetime.strptime(date_updated, "%B %d, %Y")
+
+        author = {"name": article_info["author"], "link": article_info["author_link"]}  
+
+        langs = None #TODO: Discuss    (This should be defined in constants section within file)
         
-        if k == "text":  
-            doc = {
-                "doc_id": doc_id,
-                "postID": post_id,
-                "domain": domain,
-                "origURL": story_url, # for text content, URL is the URL of the story
-                "s3URL": None,
-                "possibleLangs": langs,
-                "mediaType": k,
-                "content": v,  # text, if media_type = text or text in image/audio/video
-                "nowDate": now_date,  # date of scraping, same as date_accessed
-                "nowDate_UTC": now_date_utc,
-                "isGoodPrior": None,  # no of [-ve votes, +ve votes] TODO: Discuss  Discussed: Look More
-            }
-            docs.append(doc)
-        
-        else:
-            for url in v:
+
+        article_content = get_article_content(pq)
+        docs = []
+        for k, v in article_content.items():
+            if not v:  # empty list
+                continue
+            
+            doc_id = uuid.uuid4().hex
+            
+            if k == "text":  
                 doc = {
                     "doc_id": doc_id,
                     "postID": post_id,
                     "domain": domain,
-                    "origURL": url,  # for images,videos URL is the URL of the media item.
+                    "origURL": story_url, # for text content, URL is the URL of the story
                     "s3URL": None,
                     "possibleLangs": langs,
                     "mediaType": k,
-                    "content": None,  # this field is specifically to store text content.
+                    "content": v,  # text, if media_type = text or text in image/audio/video
                     "nowDate": now_date,  # date of scraping, same as date_accessed
                     "nowDate_UTC": now_date_utc,
-                    "isGoodPrior": None,  # no of [-ve votes, +ve votes] TODO: Discuss
-                }  
-                docs.append(doc)          
+                    "isGoodPrior": None,  # no of [-ve votes, +ve votes] TODO: Discuss  Discussed: Look More
+                }
+                docs.append(doc)
+            
+            else:
+                for url in v:
+                    doc = {
+                        "doc_id": doc_id,
+                        "postID": post_id,
+                        "domain": domain,
+                        "origURL": url,  # for images,videos URL is the URL of the media item.
+                        "s3URL": None,
+                        "possibleLangs": langs,
+                        "mediaType": k,
+                        "content": None,  # this field is specifically to store text content.
+                        "nowDate": now_date,  # date of scraping, same as date_accessed
+                        "nowDate_UTC": now_date_utc,
+                        "isGoodPrior": None,  # no of [-ve votes, +ve votes] TODO: Discuss
+                    }  
+                    docs.append(doc)          
 
-    post = {
-        "postID": post_id,  # unique post ID
-        "postURL": story_url,  
-        "domain": domain,  # domain such as altnews/factly
-        "headline": article_info["headline"],  # headline text
-        "date_accessed": now_date,  # date scraped
-        "date_accessed_UTC": now_date_utc,
-        "date_updated": date_updated,  # later of date published/updated
-        "date_updated_UTC": date_updated_utc,  # later of date published/updated
-        "author": author,
-        "s3URL": None,
-        "post_category": None,
-        "claims_review": None,
-        "docs": docs,
-    }
+        post = {
+            "postID": post_id,  # unique post ID
+            "postURL": story_url,  
+            "domain": domain,  # domain such as altnews/factly
+            "headline": article_info["headline"],  # headline text
+            "date_accessed": now_date,  # date scraped
+            "date_accessed_UTC": now_date_utc,
+            "date_updated": date_updated,  # later of date published/updated
+            "date_updated_UTC": date_updated_utc,  # later of date published/updated
+            "author": author,
+            #"post_category": None,
+            #"claims_review": None,
+            "docs": docs,
+        }
 
-    print(post)
+        print(post)
 
 
-    time_millis = int(time() * 1000)
-    file_name = f'{time_millis}_{url.split("/")[-2]}.json'
-    json_data = json.dumps(post,  default=convert_timestamp)
-    with open(file_name, 'w') as f:
-        f.write(json_data)
-    
+        json_data = json.dumps(post,  default=convert_timestamp)
+        with open(file_name, 'w') as f:
+            f.write(json_data)
+        
     return post 
 
 def convert_timestamp(item_date_object):
@@ -408,34 +444,60 @@ def get_all_images(post):
                 
     return filename_dict
 
-def media_downloader(post):
+def media_downloader(post, sub_folder):
     print("entered media downloader")
+    file_name = f'{sub_folder}media_dict.json'
+    
+    if os.path.exists(file_name):
+        print("media dictionary exists. Some media items have been dowloaded. See ",file_name)
+        return 1
+
     media_dict = get_all_images(post)
+    
+    json_data = json.dumps(media_dict,  default=convert_timestamp)
+    with open(file_name, 'w') as f:
+        f.write(json_data)
+
     return media_dict
 
 # ============================================================================== 
 
 
 # ============================= DATA UPLOADER BEGIN =======================
-def data_uploader(post,media_dict,html_text):
+def data_uploader(post, media_dict, html_text, sub_folder):
 
     print("entered data uploader")
 
     coll = get_collection(MONGOURL, DB_NAME, COLL_NAME)
     s3 = aws_connection()
 
-
-
     for doc in post["docs"]:
+            if (doc["s3URL"] != None):
+                print("Skipping upload. Doc has an existing s3_url:",doc["s3URL"])
+                continue
             filename = media_dict.get(doc["doc_id"])
             if (filename != None):
+                s3_filename = str(uuid4())
+                res = s3.upload_file(
+                            filepath,
+                            BUCKET,
+                            s3_filename,
+                            ExtraArgs={"ContentType": content_type},
+                        )
                 s3_url = f"https://{BUCKET}.s3.{REGION_NAME}.amazonaws.com/{filename}" #upload media file to s3
                 doc.update("s3URL",s3_url)
+
+
             else:
                 continue
     
+    # add post to mongo
     coll.insert_one(post)
 
+    # add html to s3
+
+
+    
     ### write html to s3
     with open(file_name, 'w') as f:
         f.write(html)
@@ -446,39 +508,43 @@ def data_uploader(post,media_dict,html_text):
 
 def main():
     print('boomlive scraper initiated')
-    boom_sites = {
-    "boomlive.in": {
-        "url": "https://www.boomlive.in/fact-check",
-        "langs": ["english"],
-        "domain": "boomlive.in",
-    },
-    "hindi.boomlive.in": {
-        "url": "https://hindi.boomlive.in/fact-check",
-        "langs": ["hindi"],
-        "domain": "hindi.boomlive.in",
-    },
-    "bangla.boomlive.in": {
-        "url": "https://bangla.boomlive.in/fact-check",
-        "langs": ["bengali"],
-        "domain": "bangla.boomlive.in",
-    },
-    
+
+    boom_sites = [
+    "boomlive.in",
+    #"hindi.boomlive.in",
+    #"bangla.boomlive.in"
+    ]
+
     CRAWL_PAGE_COUNT = 2
+    
 
+    for boom_site in boom_sites:
+        
+        print(boom_site)
 
-    for site in boom_sites:
-        print(site["domain"])
-        links = crawler("url,CRAWL_PAGE_COUNT)
-
+        site = BOOM_SITES_DICT[boom_site]
+        print(site.get("domain"))
+        links = crawler(site.get("url"),CRAWL_PAGE_COUNT)
+        
         print(links)
 
         for link in links:
-            html_response = article_downloader(link)
-            post = article_parser(html_response,link,site["domain"],site["lang"])
-            media_items = media_downloader(post)
-            data_uploader(post,media_items,html)
-            # if (DEBUG==0):
+            sub_folder = f'{FILE_PATH}{link.split("/")[-1]}/' # subfolder in which site specific content is stored
+            print(sub_folder)
+
+            if not os.path.exists(sub_folder):
+                os.mkdir(sub_folder)
+            import ipdb; ipdb.set_trace()
+            html_text = article_downloader(link,sub_folder)
+            post = article_parser(html_text,link,site.get("domain"),site.get("lang"),sub_folder)
+            media_items = media_downloader(post,sub_folder)
+            #data_uploader(post,media_items,html,sub_folder)
+            if (DEBUG==0):
+                os.remove(sub_folder)
             # delete post, medi_items but not html_response
+
+        if (DEBUG==0):
+            os.remove(f'{FILE_PATH}url_list.json')
 
 if __name__ == "__main__":
     main()
