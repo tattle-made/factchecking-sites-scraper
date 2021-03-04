@@ -1,6 +1,6 @@
 ## Current Sites Being Scraped:
 
-### Last Updated: Feb 1 2021
+### Last Updated: March 4 2021
 
 Updated from https://ifcncodeofprinciples.poynter.org/signatories
 
