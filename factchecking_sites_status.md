@@ -1,6 +1,6 @@
 ## Current Sites Being Scraped:
 
-### Last Updated: March 4 2021
+### Last Updated: March 16 2021
 
 Updated from https://ifcncodeofprinciples.poynter.org/signatories
 
@@ -23,7 +23,7 @@ How to read Tattle Status Column:
 |  The Quint Webqoof                | https://www.thequint.com/news/webqoof  | 23-Jan-2021 (Under Renewal)| Unclear  |   Testing |
 |  Fact Crescendo                   | https://factcrescendo.com/             | 23-Nov-2021     |          | NA      |
 |  Newsmeter                        | https://newsmeter.in                   | 27-Nov-2021     |          | Running |
-|  Digiteye                         | https://digiteye.in                    | 27-May-2021     |          | Testing |
+|  Digiteye                         | https://digiteye.in                    | 27-May-2021     |          | Running |
 |  THIP Healthtech                  | https://www.thip.media                 | 17-Jun-2021     |          | NA      | 
 |  Vishvas News                     | http://www.vishvasnews.com             | 22-Feb-2021     |          | Testing |  
 |  Youturn                          | https://youturn.in/                    | 17-Jun-2021     |          | NA      |
