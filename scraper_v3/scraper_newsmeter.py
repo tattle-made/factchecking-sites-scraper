@@ -1,5 +1,5 @@
-## Scraper Functions for Boomlive
-## 16 Feb 2021
+## Scraper Functions for Newsmeter
+## 25 Feb 2021
 
 from time import time, sleep
 from datetime import date, datetime
@@ -23,7 +23,6 @@ import requests
 import boto3
 
 import os
-import shutil
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -37,33 +36,22 @@ COLL_NAME = os.environ["COLL_NAME"]
 BUCKET = os.environ["BUCKET"]
 REGION_NAME = os.environ["REGION_NAME"]
 
-DEBUG = 0
+DEBUG = 1
 
-CRAWL_PAGE_COUNT = 2
+CRAWL_PAGE_COUNT = 10
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
     }
 
-FILE_PATH = "tmp/boomlive/"
+FILE_PATH = "tmp/newsmeter/"
 
-
-BOOM_SITES_DICT = {
-    "boomlive.in": {
-        "url": "https://www.boomlive.in/fact-check",
+NEWSMETER_SITES_DICT = {
+    "newsmeter.in": {
+        "url": "https://newsmeter.in/fact-check",
         "langs": "english",
-        "domain": "boomlive.in",
-        },
-    "hindi.boomlive.in": {
-        "url": "https://hindi.boomlive.in/fact-check",
-        "langs": "hindi",
-        "domain": "hindi.boomlive.in",
-    },
-    "bangla.boomlive.in": {
-        "url": "https://bangla.boomlive.in/fact-check",
-        "langs": "bengali",
-        "domain": "bangla.boomlive.in",
-    }
+        "domain": "newsmeter.in",
+        }
 }
 
 
@@ -163,13 +151,11 @@ def crawler(crawl_url, page_count, lang_folder) -> list:
             if (tree == None):
                 print("No HTML on Link")
                 continue
-
-            permalinks = PyQuery(tree).find(".entry-title>a")
+   
+            permalinks = PyQuery(tree).find(".post-title>a")
             
             for pl in permalinks:
                 link = crawl_url + pl.attrib['href']
-                if 'javascript:void(0)' in link:   #these links should not be scraped
-                    continue
                 if coll.count_documents({"postURL": link}, {}):
                     print(link, "exists in collection")
                     continue
@@ -211,15 +197,6 @@ def article_downloader(url, sub_folder):
     
     return html_text
 
-    # response = requests.get(url, headers=headers)
-
-    # with open(file_name, "w") as f:
-    #     f.write(response.text)
-    
-    # with open("url_link.text","w") as f:
-    #     f.write(url)
-
-    # return response
 
 # ==============================================================================
 
@@ -227,13 +204,13 @@ def article_downloader(url, sub_folder):
 # ============================= PARSER BEGIN =======================
 
 def get_article_info(pq):
-    headline = pq("h1.entry-title").text()
+    headline = pq("h1.page-title").text()
     print(headline)
-    datestr = pq('span.date>span').text().split('Updated')[0]
+    datestr = pq('.author-block span:last-child').text()
     print(datestr)
     datestr = parse(datestr).astimezone(pytz.timezone('Asia/Calcutta')).strftime("%B %d, %Y")
-    author_name = pq('a.author-name').text()
-    author_link = pq('a.author-name').attr['href']
+    author_name = pq('.author-block span:first-child').text().split('By ')[1]
+    author_link = pq('.author-block span:first-child>a').attr['href']
     article_info = {
         "headline": restore_unicode(headline),
         "author": restore_unicode(author_name),
@@ -252,15 +229,17 @@ def get_article_content(pq):
         "facebook": [],
         "instagram": [],
     }
-
+    
+    
     ## text content
-    content['text'] = restore_unicode(pq('div.story').text())
+    content['text'] = restore_unicode(pq('div.story_content').text())
 
     ## images
     images = pq.find('figure>img')
     images += pq.find('.image-and-caption-wrapper>img')
-    images += pq.find('.single-featured-thumb-container>img')
-    images = list(dict.fromkeys(images))
+    images += pq.find('.feat-img>img')
+    
+    images = list(dict.fromkeys(images))  #remove any duplicate images
 
     for i in images:
         if 'src' in i.attrib:
@@ -437,8 +416,6 @@ def get_all_images(post,sub_folder):
 
                 if filename == "RDESController":
                     continue # for now ignore RDESController
-                    # handle files served by boomlive servlet
-                    # eg - https://bangla.boomlive.in/content/servlet/RDESController?command=rdm.Picture&app=rdes&partner=boomlivebn&type=7&sessionId=RDWEBCM4UOT387MUCCO9K206WYURB7TIJPR0S&uid=5780889mysxCnqsjTKn5C4C0mXDHoqhwayM7B9087027
                     url_split = url.split("uid=")
                     filename = url_split[1]
 
@@ -452,7 +429,7 @@ def get_all_images(post,sub_folder):
                 
                 if image.mode in ("RGBA", "P"): 
                     image = image.convert("RGB")
-                
+
                 image.save(f'{sub_folder}{filename}')
                 #filename_dict[doc["doc_id"]] = filename   #TODO: what is correct syntax
                 filename_dict.update({doc["doc_id"]: filename})
@@ -533,24 +510,22 @@ def data_uploader(post, media_dict, html_text, sub_folder):
 # ============================= MAIN FUNCTION =======================
 
 def main():
-    print('boomlive scraper initiated')
+    print('newsmeter scraper initiated')
 
-    boom_sites = [
-    "boomlive.in",
-    "hindi.boomlive.in",
-    "bangla.boomlive.in"
+    newsmeter_sites = [
+    "newsmeter.in",
     ]
 
     # in debug stage test one language at a time. the url_list file is common to all 
 
-    CRAWL_PAGE_COUNT = 2
+    CRAWL_PAGE_COUNT = 79
     
 
-    for boom_site in boom_sites:
+    for newsmeter_site in newsmeter_sites:
         
-        print(boom_site)
+        print(newsmeter_site)
 
-        site = BOOM_SITES_DICT[boom_site]
+        site = NEWSMETER_SITES_DICT[newsmeter_site]
         print(site.get("domain"))
         lang_folder = f'{FILE_PATH}{site.get("langs")}/'
         links = crawler(site.get("url"),CRAWL_PAGE_COUNT,lang_folder)
@@ -559,6 +534,11 @@ def main():
 
         for link in links:
             sub_folder = f'{lang_folder}{link.split("/")[-1]}/' # subfolder in which site specific content is stored
+            #import ipdb; ipdb.set_trace() 
+            ## account for newsmeter links that end in / such as https://newsmeter.in/fact-check/fact-check-woman-in-viral-video-is-neither-would-be-owner-of-padmanabha-swamy-temple-nor-member-of-royal-family/
+            if (sub_folder == 'tmp/newsmeter/english//'):
+                sub_folder = f'{lang_folder}{link.split("/")[-2]}/'
+            
             print(sub_folder)
 
             if not os.path.exists(sub_folder):
@@ -569,8 +549,8 @@ def main():
             media_items = media_downloader(post,sub_folder)
             data_uploader(post,media_items,html_text,sub_folder)
             if (DEBUG==0):
-                shutil.rmtree
-            
+                os.remove(sub_folder)
+            # delete post, medi_items but not html_response
 
         if (DEBUG==0):
             os.remove(f'{lang_folder}url_list.json')

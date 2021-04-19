@@ -1,5 +1,5 @@
-## Scraper Functions for Boomlive
-## 16 Feb 2021
+## Scraper Functions for Digiteye
+## 16 March 2021
 
 from time import time, sleep
 from datetime import date, datetime
@@ -13,6 +13,7 @@ from io import BytesIO
 from tqdm import tqdm
 from numpy.random import randint
 from uuid import uuid4
+
 
 from pymongo import MongoClient
 from pymongo.collection import Collection
@@ -37,33 +38,23 @@ COLL_NAME = os.environ["COLL_NAME"]
 BUCKET = os.environ["BUCKET"]
 REGION_NAME = os.environ["REGION_NAME"]
 
-DEBUG = 0
+DEBUG = 1
 
-CRAWL_PAGE_COUNT = 2
+CRAWL_PAGE_COUNT = 5
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
     }
 
-FILE_PATH = "tmp/boomlive/"
+FILE_PATH = "tmp/digiteye/"
 
 
-BOOM_SITES_DICT = {
-    "boomlive.in": {
-        "url": "https://www.boomlive.in/fact-check",
+DIGITEYE_SITES_DICT = {
+    "digiteye.in": {
+        "url": "https://digiteye.in",
         "langs": "english",
-        "domain": "boomlive.in",
+        "domain": "digiteye.in",
         },
-    "hindi.boomlive.in": {
-        "url": "https://hindi.boomlive.in/fact-check",
-        "langs": "hindi",
-        "domain": "hindi.boomlive.in",
-    },
-    "bangla.boomlive.in": {
-        "url": "https://bangla.boomlive.in/fact-check",
-        "langs": "bengali",
-        "domain": "bangla.boomlive.in",
-    }
 }
 
 
@@ -157,19 +148,18 @@ def crawler(crawl_url, page_count, lang_folder) -> list:
         coll = get_collection(MONGOURL, DB_NAME, COLL_NAME)
 
         for page in tqdm(range(CRAWL_PAGE_COUNT), desc="pages: "):
-            page_url = f"{crawl_url}/{page}"
+            page_url = f"{crawl_url}/page/{page}"
             tree = get_tree(page_url)   
 
             if (tree == None):
                 print("No HTML on Link")
                 continue
 
-            permalinks = PyQuery(tree).find(".entry-title>a")
-            
+            permalinks = PyQuery(tree).find(".post-title>a")
+           
+
             for pl in permalinks:
-                link = crawl_url + pl.attrib['href']
-                if 'javascript:void(0)' in link:   #these links should not be scraped
-                    continue
+                link = pl.attrib['href']
                 if coll.count_documents({"postURL": link}, {}):
                     print(link, "exists in collection")
                     continue
@@ -227,13 +217,27 @@ def article_downloader(url, sub_folder):
 # ============================= PARSER BEGIN =======================
 
 def get_article_info(pq):
-    headline = pq("h1.entry-title").text()
+    headline = pq("h1.post-title").text()
     print(headline)
-    datestr = pq('span.date>span').text().split('Updated')[0]
+    datestr = pq('.post-inner>.post-meta>span.tie-date').text()#.split('Updated')[0]
     print(datestr)
-    datestr = parse(datestr).astimezone(pytz.timezone('Asia/Calcutta')).strftime("%B %d, %Y")
-    author_name = pq('a.author-name').text()
-    author_link = pq('a.author-name').attr['href']
+
+    # try:
+    #     datestr = parse(datestr).strftime("%B %d, %Y")
+         
+    # except Exception as e:
+    #     print(f"failed at parsing data: {e}. Skipping post")
+    #     return 1
+        
+    
+    
+    #import ipdb; ipdb.set_trace()
+    author_name = pq('span.post-meta-author').text().split('Posted by: ')[1]
+    author_link = pq('span.post-meta-author>a').attr['href'] 
+
+    print(author_name)
+    print(author_link)
+
     article_info = {
         "headline": restore_unicode(headline),
         "author": restore_unicode(author_name),
@@ -254,12 +258,12 @@ def get_article_content(pq):
     }
 
     ## text content
-    content['text'] = restore_unicode(pq('div.story').text())
+    content['text'] = restore_unicode(pq('div.entry').text())
 
     ## images
     images = pq.find('figure>img')
     images += pq.find('.image-and-caption-wrapper>img')
-    images += pq.find('.single-featured-thumb-container>img')
+    images += pq.find('.single-post-thumb>img')
     images = list(dict.fromkeys(images))
 
     for i in images:
@@ -313,7 +317,7 @@ def get_article_content(pq):
     return content
 
 def article_parser(html_text, story_url, domain, langs, sub_folder):
-    
+
     print("entered article_parser")
     file_name = f'{sub_folder}post.json'
     if os.path.exists(file_name):
@@ -450,9 +454,6 @@ def get_all_images(post,sub_folder):
                         #   eg WhatsApp-Image-2018-07-24-at-10.39.25-AM.jpeg
                         filename = f"{filename}.{image.format.lower()}"
                 
-                if image.mode in ("RGBA", "P"): 
-                    image = image.convert("RGB")
-                
                 image.save(f'{sub_folder}{filename}')
                 #filename_dict[doc["doc_id"]] = filename   #TODO: what is correct syntax
                 filename_dict.update({doc["doc_id"]: filename})
@@ -533,24 +534,20 @@ def data_uploader(post, media_dict, html_text, sub_folder):
 # ============================= MAIN FUNCTION =======================
 
 def main():
-    print('boomlive scraper initiated')
+    print('digiteye scraper initiated')
 
-    boom_sites = [
-    "boomlive.in",
-    "hindi.boomlive.in",
-    "bangla.boomlive.in"
-    ]
+    digiteye_sites = ["digiteye.in",]
 
     # in debug stage test one language at a time. the url_list file is common to all 
 
     CRAWL_PAGE_COUNT = 2
     
 
-    for boom_site in boom_sites:
+    for digiteye_site in digiteye_sites:
         
-        print(boom_site)
+        print(digiteye_site)
 
-        site = BOOM_SITES_DICT[boom_site]
+        site = DIGITEYE_SITES_DICT[digiteye_site]
         print(site.get("domain"))
         lang_folder = f'{FILE_PATH}{site.get("langs")}/'
         links = crawler(site.get("url"),CRAWL_PAGE_COUNT,lang_folder)
@@ -558,7 +555,7 @@ def main():
         print(links)
 
         for link in links:
-            sub_folder = f'{lang_folder}{link.split("/")[-1]}/' # subfolder in which site specific content is stored
+            sub_folder = f'{lang_folder}{link.split("/")[-2]}/' # subfolder in which site specific content is stored
             print(sub_folder)
 
             if not os.path.exists(sub_folder):
@@ -570,7 +567,7 @@ def main():
             data_uploader(post,media_items,html_text,sub_folder)
             if (DEBUG==0):
                 shutil.rmtree
-            
+            # delete post, medi_items but not html_response
 
         if (DEBUG==0):
             os.remove(f'{lang_folder}url_list.json')
