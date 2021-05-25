@@ -13,8 +13,10 @@ This repository contains collection of scripts to scrape the factchecking sectio
 - [factly](https://factly.in/category/fact-check/fake-news/): english + telugu  
 - [factchecker.in](https://www.factchecker.in/): english  (IFCN expired)
 - [newsmobile.in](https://newsmobile.in/articles/category/nm-fact-checker):english
+- [newsmeter.in](https://newsmeter.in/fact-check/)
+- [digiteye.in](https://digiteye.in/)
 
-At present Tattle only scrapes [IFCN](https://ifcncodeofprinciples.poynter.org/signatories) certified fact-checking sites. 
+At present Tattle only scrapes [IFCN](https://ifcncodeofprinciples.poynter.org/signatories) certified fact-checking sites. See [factchecting_sites_status.md] (https://github.com/tattle-made/tattle-research/blob/master/factchecking_sites_status.md) for the updated status on each of the websites. 
 
 ## Running Locally:
 
