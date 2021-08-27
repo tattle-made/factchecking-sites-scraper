@@ -65,7 +65,8 @@ If you want access to the fact-checking sites data please fill out [this form](h
 
 ## Generating the Fact-Checking Sites Dashboard.
 The data collected from the scrapers is used to generate the weekly fact-checking sites dashboard: https://services.tattle.co.in/khoj/dashboard/
-The instructions to generate the fact-checking sites dashboard can be found in the [data-experiments repository](https://github.com/tattle-made/data-experiments/blob/master/themes_viz_generator.ipynb). 
+
+The instructions to generate the dashboard can be found in the [data-experiments repository](https://github.com/tattle-made/data-experiments/blob/master/themes_viz_generator.ipynb). 
 
 ## Contribute
 Please see instructions [here](CONTRIBUTE.md).
