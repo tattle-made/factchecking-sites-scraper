@@ -43,18 +43,19 @@ This scraper handles scraping the sites, downloading and uploading images to s3,
 * For Visvhasnews run scraping/scrape_data.py
 This scraper handles scraping the site and uploading text and metadata for each article to mongo. It also uses a pickle file. 
 
-* For Newsmobile, run scraping/live_scraping.py
+* For Newsmobile, Factly and IndiaToday run scraping/live_scraping.py
   * This step will scrape the sites and upload the content from fact checking sites as per this [data structure](http://blog.tattle.co.in/scraping-fact-checked-news/) to the mongo DB. At this stage the images/videos have not been uploaded to s3. Only the url of these items on the fact checking sites is retrieved. 
   * Run [Upload_to_s3.py](https://github.com/tattle-made/tattle-research/blob/master/scraping/upload_to_s3.py)
 This retrieves the URLs for items on the fact checking sites, downloads them to an s3 bucket and updates the MongoDB with an s3 link. 
   * Run [Register_to_portal.py](https://github.com/tattle-made/tattle-research/blob/master/scraping/register_to_portal.py) (optional)
 This step registers the media items to Tattle kosh. If you don't have credentials to write to the kosh, skip this step. 
+  * Make sure the sites you want the scraper run for during the day are not commented out in live_scraping.py/scraper_data.py
 
 
 For each of these scrapers:
 
 * Add your s3, Mongo DB credentials to a .env file which should be in the folder that contains the scraper. 
-* Make sure the sites you want the scraper run for during the day are not commented out in live_scraping.py/scraper_data.py
+
 
 
 
