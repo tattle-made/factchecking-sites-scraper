@@ -63,6 +63,11 @@ For each of these scrapers:
 ## Request Access
 If you want access to the fact-checking sites data please fill out [this form](https://docs.google.com/forms/d/e/1FAIpQLSd6KtwsHiS1JaIME0D7n6CDrqZR3swI4D9i8fR2kr1Lp2CTvA/viewform?usp=sf_link). If you have a specific requirement not covered by this form, please ping us on [Slack](https://join.slack.com/t/tattle-workspace/shared_invite/zt-da07n75v-kIw9Z5b~_gDKP~JsScP1Vg). 
 
+
+## Generating the Fact-Checking Sites Dashboard.
+The data collected from the scrapers is used to generate the weekly fact-checking sites dashboard: https://services.tattle.co.in/khoj/dashboard/
+The instructions to generate the fact-checking sites dashboard can be found in the [data-experiments repository](https://github.com/tattle-made/data-experiments/blob/master/themes_viz_generator.ipynb). 
+
 ## Contribute
 Please see instructions [here](CONTRIBUTE.md).
 
