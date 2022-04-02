@@ -346,9 +346,12 @@ def article_parser(html_text, story_url, domain, langs, sub_folder):
             if not v:  # empty list
                 continue
             
-            doc_id = uuid4().hex
             
-            if k == "text":  
+            
+            if k == "text":
+
+                doc_id = uuid4().hex
+
                 doc = {
                     "doc_id": doc_id,
                     "postID": post_id,
@@ -366,6 +369,9 @@ def article_parser(html_text, story_url, domain, langs, sub_folder):
             
             else:
                 for url in v:
+
+                    doc_id = uuid4().hex
+
                     doc = {
                         "doc_id": doc_id,
                         "postID": post_id,
