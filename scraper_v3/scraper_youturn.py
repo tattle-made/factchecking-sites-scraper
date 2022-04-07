@@ -1,9 +1,12 @@
+## Scraper Functions for Boomlive
+## 16 Feb 2021
+
 from time import time, sleep
 from datetime import date, datetime
 from dateutil.parser import parse
 from pyquery import PyQuery
 import pytz
-import json  
+import json  #TODO: Discuss pickle vs json ; Decided JSON
 from bson import json_util
 from PIL import Image
 from io import BytesIO
@@ -24,39 +27,36 @@ import shutil
 from dotenv import load_dotenv
 load_dotenv()
 
+## Decided: For Constants generate config file. Avoid domain specific functions in common config. 
 
-MONGOURL = os.getenv('MONGOURL')
-DB_NAME = os.getenv('DB_NAME')
-COLL_NAME = os.getenv('COLL_NAME')
+# ============================== CONSTANTS  ===========================
+
+MONGOURL = os.environ["SCRAPING_URL_REMOTE"] 
+DB_NAME = os.environ["DB_NAME"]
+COLL_NAME = os.environ["COLL_NAME"]
 BUCKET = os.environ["BUCKET"]
 REGION_NAME = os.environ["REGION_NAME"]
 
-CRAWL_PAGE_COUNT = 2
 DEBUG = 0
 
-FILE_PATH = "tmp/thelogicalindian/"
+CRAWL_PAGE_COUNT = 2
+headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
+        "Content-Type": "text/html",
+    }
 
-TLI_SITES_DICT = {
-    "thelogicalindian.com": {
-        "url": "https://thelogicalindian.com/fact-check",
-        "langs": "english",
-        "domain": "thelogicalindian.com",
-        },
-}
+FILE_PATH = "tmp/youturn/"
+crawl_url = "https://en.youturn.in/category/factcheck"
+domain="en.youturn.in"
+lang = "english"
 
-# ============================== GET COLLECTION  ===========================
 def get_collection(MONGOURL, DB_NAME, COLL_NAME):
     cli = MongoClient(MONGOURL)
     db = cli[DB_NAME]
     collection = db[COLL_NAME]
 
     return collection
-
-# ===========================================================================   
-
-
-# ============================== BEGIN AWS CONNECTION  =========================== 
-
+    
 def aws_connection():
 
     access_id = os.environ["ACCESS_ID"]
@@ -70,13 +70,7 @@ def aws_connection():
     )
 
     return s3
-
-# ===============================================================================
-
-
-# ============================== GET TREE  ===========================   
-
-
+    
 def get_tree(url):
 
     html = None                        
@@ -90,23 +84,14 @@ def get_tree(url):
     tree = fromstring(html.content)
     return tree
 
-# ==============================================================================
 
-# ================================ RETURN UNICODE  =============================
 
 def restore_unicode(mangled):
     return mangled.encode('latin1','ignore').decode('utf8', 'replace')
 
-# ==============================================================================
 
 
-# ============================= CRAWLER BEGIN ========================  
-
-def crawler(crawl_url, page_count, lang_folder) -> list: 
-    """
-    get story links based on url and page range
-    extract all URLs in pages, discard URLs already in collection
-    """
+def crawler(crawl_url): 
 
     print("entered crawler")
 
@@ -122,17 +107,18 @@ def crawler(crawl_url, page_count, lang_folder) -> list:
         coll = get_collection(MONGOURL, DB_NAME, COLL_NAME)
 
         for page in tqdm(range(CRAWL_PAGE_COUNT), desc="pages: "):
-            page_url = f"{crawl_url}/{page+1}"
+            page_url = f"{crawl_url}/page/{page+1}"
+            print(page_url)
             tree = get_tree(page_url)
             
             if (tree == None):
                 print("No HTML on Link")
                 continue
 
-            permalinks = PyQuery(tree).find(".single-article>a")
-            
+            permalinks = PyQuery(tree).find(".post-item>a")
+
             for pl in permalinks:
-                link = crawl_url + pl.attrib['href']
+                link = pl.attrib['href']
                 if 'javascript:void(0)' in link:   #these links should not be scraped
                     continue
                 if coll.count_documents({"postURL": link}, {}):
@@ -149,16 +135,14 @@ def crawler(crawl_url, page_count, lang_folder) -> list:
             
     return url_list
 
-# ============================================================================== 
 
 
-# ============================= ARTICLE DOWNLOADER BEGIN =======================
+
 
 def article_downloader(url, sub_folder): 
     print("entered downloader")
     print(url)
-    
-    #save_path = 'article_one_subfolder'
+
     file = "file.html"
     file_name = os.path.join(sub_folder, file)
     print(file_name)  
@@ -175,66 +159,81 @@ def article_downloader(url, sub_folder):
     
     return html_text
 
-# ==============================================================================
 
-
-# ============================= PARSER BEGIN =======================
 
 def get_article_info(pq):
 
-    headline = pq("h1.article-heading").text()
+    headline = pq("h1.post-title").text()
     print(headline)
-    date = pq('h3.date-info>span').text()
-    date=date.split(",")[1]
-    date=date.split(" ")[1:4]
-    #print(date)
+    date = pq("div.post-meta>span.date").text().split(" ")[0:3]
     datestr = ' '.join(map(str, date))
     print(datestr)
     datestr = parse(datestr).astimezone(pytz.timezone('Asia/Calcutta')).strftime("%B %d, %Y")
-    author_name = pq('h3>a').text().split(':')[1].strip()
-    author_name = author_name.rsplit(' ', 1)[0]
-    print(author_name)
-    author_link = pq('h3>a').attr['href'] #crawl_url + pq('h3>a').attr['href']
-    print(author_link)
+    author_name = "NA"
+    author_link = "NA"
     article_info = {
         "headline": restore_unicode(headline),
-        "author": restore_unicode(author_name),
-        "author_link": restore_unicode(author_link),
+        "author": author_name,
+        "author_link": author_link,
         "date_updated": restore_unicode(datestr),
     }
+    print(article_info)
+    
     return article_info
+
+
 
 def get_article_content(pq):
     
     content = {
         "text": [],
-        "fb_video": [],
+        "fb_post": [],
         "image": [],
         "tweet": [],
+        "video": [],
+        "youtube": [],
     }
 
     # text content
-    content['text'] = pq('div.details-content-story').text()
+    claim = pq('div.entry-content>div>p').text()
+    explanation = pq('div.entry-content>p').text()
+    content['text'] = ". ".join([claim, explanation])
 
     # images
-    images = pq.find('.article-head-image>.img-wth-credits>img')
-    images += pq.find('.image-and-caption-wrapper>img')
+    images = pq.find('div.featured-area-inner>figure.single-featured-image>img')
+    images += pq.find('div.entry-content>p>img')
+    images += pq.find('div.entry-content>div>p>img')
+    images += pq.find('div>img')
     images = list(dict.fromkeys(images))
-
     for i in images:
-        if 'src' in i.attrib:
-            #print(i.attrib["src"])
-            content["image"].append(i.attrib["src"])      
-            
-    #fb_vid = pq.find('.h-embed-wrapper>h-iframe') 
-    #for f in fb_vid:
-    #    content["fb_video"].append(f.attrib["src"])  
+        if not 'gif' in str(i.attrib["src"]):
+            content["image"].append(i.attrib["src"])   
     
-    #twitter videos
-        
-    tweets = pq.find('.twitter-tweet>a') 
-    for t in tweets:
-        content["tweet"].append(t.attrib["href"])  
+    # facebook posts
+    fb_post = pq.find('div.entry-content>div>p>a') 
+    fb_post += pq.find('div.entry-content>p>a')
+    for f in fb_post:
+        if "facebook" in str(f.attrib["href"]):
+            content["fb_post"].append(f.attrib["href"])
+    
+    # tweets
+    tweet = pq.find('div.entry-content>p>a')
+    tweet += pq.find('div.entry-content>div>p>a')
+    for t in tweet:
+        if "twitter" in str(t.attrib["href"]):
+            content["tweet"].append(t.attrib["href"])  
+    
+    #videos
+    video = pq.find('div.entry-content>p>iframe') 
+    for v in video:
+        content["video"].append(v.attrib["src"])  
+    
+    # youtube videos
+    youtube = pq.find('div.entry-content>div>p>a')
+    if "yout" in str(youtube.attr["href"]):
+        content["youtube"].append(youtube.attr["href"])
+
+
         
         
     return content
@@ -337,11 +336,6 @@ def article_parser(html_text, url, domain, lang, sub_folder):
         
     return post 
 
-# ==============================================================================
-
-
-# ============================= EMBED DOWNLOADER BEGIN =======================
-
 def get_all_images(post,sub_folder):
 
     url = None
@@ -366,6 +360,7 @@ def get_all_images(post,sub_folder):
                 image.save(f'{sub_folder}/{filename}')
                 filename_dict.update({doc["doc_id"]: filename})
                 
+    print(filename_dict)
     return filename_dict
 
 
@@ -385,11 +380,6 @@ def media_downloader(post, sub_folder):
             f.write(json_data)
 
     return media_dict
-
-# ============================================================================== 
-
-
-# ============================= DATA UPLOADER BEGIN =======================
 
 def data_uploader(post, media_dict, html_text, sub_folder):
 
@@ -436,41 +426,28 @@ def data_uploader(post, media_dict, html_text, sub_folder):
                           ExtraArgs={"ContentType": "unk_content_type"},
                         )
 
-# ==============================================================================
-
-# ============================= MAIN FUNCTION ==================================
-
 def main():
-    print('TLI scraper initiated')
-
-    TLI_sites = ["thelogicalindian.com"]
+    print('Youturn scraper initiated')
     
-    #links = crawler(crawl_url)
-    #print(links)
+    links = crawler(crawl_url)
+    print(links)
+
     
-    for TLI_site in TLI_SITES_DICT:
-        print(TLI_site)
-        site = TLI_SITES_DICT[TLI_site]
-        print(site.get("domain"))
-
-        lang_folder = f'{FILE_PATH}{site.get("langs")}/'
-        links = crawler(site.get("url"),CRAWL_PAGE_COUNT,lang_folder)
-
-        for link in links:
-            sub_folder = f'{lang_folder}{link.split("/")[-1]}/'
-            print(sub_folder)
-            
-            if not os.path.exists(sub_folder):
-                os.mkdir(sub_folder)
-            html_text = article_downloader(link, sub_folder)
-            post = article_parser(html_text, link, site.get("domain"),site.get("lang"),sub_folder)
-            media_dict = media_downloader(post, sub_folder)
-            data_uploader(post, media_dict, html_text, sub_folder)
-            if (DEBUG==0):
-                shutil.rmtree  
-                
+    for link in links:
+        sub_folder = link.split("/")[-1].split(".")[0] 
+        print(sub_folder)
+        
+        if not os.path.exists(sub_folder):
+            os.mkdir(sub_folder)
+        html_text = article_downloader(link, sub_folder)
+        post = article_parser(html_text, link, domain, lang, sub_folder)
+        media_dict = media_downloader(post, sub_folder)
+        data_uploader(post, media_dict, html_text, sub_folder)
         if (DEBUG==0):
-            os.remove(f'{lang_folder}url_list.json')
+            shutil.rmtree  
+            
+    if (DEBUG==0):
+            os.remove(f'url_list.json')
             
 if __name__ == "__main__":
     main()
