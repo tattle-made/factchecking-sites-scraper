@@ -46,9 +46,22 @@ headers = {
     }
 
 FILE_PATH = "tmp/youturn/"
-crawl_url = "https://en.youturn.in/category/factcheck"
-domain="en.youturn.in"
-lang = "english"
+
+
+YOUTURN_SITES_DICT = {
+    "en.youturn.in": {
+        "url":"https://en.youturn.in/category/factcheck",
+        "domain":"en.youturn.in",
+        "langs":"english",
+        }
+    "youturn.in": {
+        "url":"https://youturn.in/category/factcheck",
+        "domain":"youturn.in",
+        "langs":"tamil",
+        }
+    }
+}
+
 
 def get_collection(MONGOURL, DB_NAME, COLL_NAME):
     cli = MongoClient(MONGOURL)
@@ -91,11 +104,11 @@ def restore_unicode(mangled):
 
 
 
-def crawler(crawl_url): 
+def crawler(crawl_url, page_count, lang_folder) -> list:
 
     print("entered crawler")
 
-    file_name = 'url_list.json'
+    file_name = f'{lang_folder}url_list.json'
     if os.path.exists(file_name):
         print("site already been crawled. See ", file_name)
         with open(file_name, "r") as f:
@@ -143,7 +156,7 @@ def article_downloader(url, sub_folder):
     print("entered downloader")
     print(url)
 
-    file = "file.html"
+    file_name = f'{sub_folder}story.html'
     file_name = os.path.join(sub_folder, file)
     print(file_name)  
 
@@ -245,7 +258,7 @@ def convert_timestamp(item_date_object):
 def article_parser(html_text, url, domain, lang, sub_folder):
     
     print("entered article_parser")
-    file = "post.json"
+    file_name = f'{sub_folder}post.json'
     file_name = os.path.join(sub_folder, file)
     if os.path.exists(file_name):
         print("story has already been parsed.See ", file_name)
@@ -429,25 +442,34 @@ def data_uploader(post, media_dict, html_text, sub_folder):
 def main():
     print('Youturn scraper initiated')
     
-    links = crawler(crawl_url)
-    print(links)
+    youturn_sites = ["en.youturn.in","youturn.in"]
 
-    
-    for link in links:
-        sub_folder = link.split("/")[-1].split(".")[0] 
-        print(sub_folder)
+    for youturn_site in youturn_sites:
+        print(youturn_site)
+
+        site = YOUTURN_SITES_DICT[youturn_site]
+        print(site.get("domain"))
+        lang_folder = f'{FILE_PATH}{site.get("langs")}/'
+        links = crawler(site.get("url"),CRAWL_PAGE_COUNT,lang_folder)
         
-        if not os.path.exists(sub_folder):
-            os.mkdir(sub_folder)
-        html_text = article_downloader(link, sub_folder)
-        post = article_parser(html_text, link, domain, lang, sub_folder)
-        media_dict = media_downloader(post, sub_folder)
-        data_uploader(post, media_dict, html_text, sub_folder)
+        print(links)
+
+        
+        for link in links:
+            sub_folder = f'{lang_folder}{link.split("/")[-1]}/'
+            print(sub_folder)
+            
+            if not os.path.exists(sub_folder):
+                os.mkdir(sub_folder)
+            html_text = article_downloader(link, sub_folder)
+            post = article_parser(html_text, link, domain, lang, sub_folder)
+            media_dict = media_downloader(post, sub_folder)
+            data_uploader(post, media_dict, html_text, sub_folder)
+            if (DEBUG==0):
+                shutil.rmtree  
+                
         if (DEBUG==0):
-            shutil.rmtree  
-            
-    if (DEBUG==0):
-            os.remove(f'url_list.json')
-            
+            os.remove(f'{lang_folder}url_list.json')
+                
 if __name__ == "__main__":
     main()

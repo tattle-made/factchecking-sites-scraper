@@ -1,10 +1,5 @@
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
-## Scraper Functions for The Logical Indian
-## 7 April 2022
-=======
-## Scraper Functions for Boomlive
-## 16 Feb 2021
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
+## Scraper Functions for Newschecker
+## 7 Apr 2022
 
 from time import time, sleep
 from datetime import date, datetime
@@ -19,6 +14,7 @@ from tqdm import tqdm
 from numpy.random import randint
 from uuid import uuid4
 
+
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
@@ -28,7 +24,6 @@ import requests
 import boto3
 
 import os
-import shutil
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -42,35 +37,60 @@ COLL_NAME = os.environ["COLL_NAME"]
 BUCKET = os.environ["BUCKET"]
 REGION_NAME = os.environ["REGION_NAME"]
 
-DEBUG = 0
+DEBUG = 1
 
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
-CRAWL_PAGE_COUNT =1
-=======
-CRAWL_PAGE_COUNT =2
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
+CRAWL_PAGE_COUNT = 3
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
     }
 
-FILE_PATH = "tmp/thelogicalindian/"
+FILE_PATH = "tmp/newschecker/"
 
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
-TLI_DICT = {
-    "thelogicalindian.com":{
-        "url":"https://thelogicalindian.com/fact-check",
-        "domain":"thelogicalindian.com",
+newschecker_sites_dict = {
+    "newschecker.in": {
+        "url": "https://newschecker.in/fact-check",
         "langs": "english",
-        },
+        "domain": "newschecker.in",
+    },
+    "newschecker.in/hi": {
+        "url": "https://newschecker.in/hi/fact-check-hi",
+        "langs": "hindi",
+        "domain": "newschecker.in/hi",
+    },
+    "newschecker.in/bn": {
+        "url": "https://newschecker.in/bn/fact-checks",
+        "langs": "bengali",
+        "domain": "newschecker.in/bn",
+    },
+    "newschecker.in/gu": {
+        "url": "https://newschecker.in/gu/fact-checks-gu",
+        "langs": "gujarati",
+        "domain": "newschecker.in/gu",
+    },
+    "newschecker.in/mr": {
+        "url": "https://newschecker.in/mr/fact-check-mr",
+        "langs": "marathi",
+        "domain": "newschecker.in/mr",
+    },
+    "newschecker.in/pa": {
+        "url": "https://newschecker.in/pa/fact-check-pa",
+        "langs": "punjabi",
+        "domain": "newschecker.in/pa",
+    },
+    "newschecker.in/ta": {
+        "url": "https://newschecker.in/ta/fact-check-ta",
+        "langs": "tamil",
+        "domain": "newschecker.in/ta",
+    },
+    "newschecker.in/ml": {
+        "url": "https://newschecker.in/ml/fact-check-ml",
+        "langs": "malayalam",
+        "domain": "newschecker.in/ml",
+    },
 }
 
-=======
 
-crawl_url = "https://thelogicalindian.com/fact-check"
-domain="thelogicalindian.com"
-lang = "english"
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
 
 def get_collection(MONGOURL, DB_NAME, COLL_NAME):
     cli = MongoClient(MONGOURL)
@@ -78,8 +98,6 @@ def get_collection(MONGOURL, DB_NAME, COLL_NAME):
     collection = db[COLL_NAME]
 
     return collection
-
-
 
 def aws_connection():
 
@@ -94,7 +112,7 @@ def aws_connection():
     )
 
     return s3
-
+    
 def get_tree(url):
 
     html = None                        
@@ -108,23 +126,17 @@ def get_tree(url):
     tree = fromstring(html.content)
     return tree
 
+
+
 def restore_unicode(mangled):
     return mangled.encode('latin1','ignore').decode('utf8', 'replace')
-    
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
-def crawler(crawl_url, page_count, lang_folder) -> list:  
-    """
-    get story links based on url and page range
-    extract all URLs in pages, discard URLs already in collection
-    """
-=======
-def crawler(crawl_url): 
 
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
+
+def crawler(crawl_url, CRAWL_PAGE_COUNT, lang_folder) -> list:
+
     print("entered crawler")
 
     file_name = f'{lang_folder}url_list.json'
-    print(file_name)
     if os.path.exists(file_name):
         print("site already been crawled. See ", file_name)
         with open(file_name, "r") as f:
@@ -136,17 +148,21 @@ def crawler(crawl_url):
         coll = get_collection(MONGOURL, DB_NAME, COLL_NAME)
 
         for page in tqdm(range(CRAWL_PAGE_COUNT), desc="pages: "):
-            page_url = f"{crawl_url}/{page+1}"
+            page_url = f"{crawl_url}/page/{page+1}"
+            print(page_url)
             tree = get_tree(page_url)
             
             if (tree == None):
                 print("No HTML on Link")
                 continue
 
-            permalinks = PyQuery(tree).find(".single-article>a")
-            
+            pq = PyQuery(tree)
+            permalinks = pq.find("div.tdb_module_cat_grid_1>div.td-module-container>div.td-image-container>div.td-module-thumb>a")
+            permalinks += pq.find("div.tdb_module_cat_grid_2>div.td-module-container>div.td-image-container>div.td-module-thumb>a")
+            permalinks += pq.find("div.tdb_module_loop>div.td-module-container>div.td-image-container>div.td-module-thumb>a")   
+
             for pl in permalinks:
-                link = crawl_url + pl.attrib['href']
+                link = pl.attrib['href']
                 if 'javascript:void(0)' in link:   #these links should not be scraped
                     continue
                 if coll.count_documents({"postURL": link}, {}):
@@ -163,12 +179,13 @@ def crawler(crawl_url):
             
     return url_list
 
+
+
 def article_downloader(url, sub_folder): 
     print("entered downloader")
     print(url)
-    
-    #save_path = 'article_one_subfolder'
-    file = "file.html"
+
+    file_name = f'{sub_folder}story.html'
     file_name = os.path.join(sub_folder, file)
     print(file_name)  
 
@@ -184,64 +201,76 @@ def article_downloader(url, sub_folder):
     
     return html_text
 
+
+
 def get_article_info(pq):
 
-    headline = pq("h1.article-heading").text()
+    headline = pq("h1.tdb-title-text").text()
     print(headline)
-    date = pq('h3.date-info>span').text()
-    date=date.split(",")[1]
-    date=date.split(" ")[1:4]
-    #print(date)
-    datestr = ' '.join(map(str, date))
-    print(datestr)
+    datestr = pq("div.tdb-block-inner>time").attr['datetime']
     datestr = parse(datestr).astimezone(pytz.timezone('Asia/Calcutta')).strftime("%B %d, %Y")
-    author_name = pq('h3>a').text().split(':')[1].strip()
-    author_name = author_name.rsplit(' ', 1)[0]
+    print(datestr)
+    author_name = pq("div.tdb-author-name-wrap>a.tdb-author-name").text()
     print(author_name)
-    author_link = crawl_url + pq('h3>a').attr['href']
+    author_link = pq("div.tdb-block-inner>a.tdb-author-photo")
+    author_link = author_link.attr['href']
     print(author_link)
     article_info = {
         "headline": restore_unicode(headline),
-        "author": restore_unicode(author_name),
-        "author_link": restore_unicode(author_link),
+        "author": author_name,
+        "author_link": author_link,
         "date_updated": restore_unicode(datestr),
     }
+    print(article_info)
+    
     return article_info
+
 def get_article_content(pq):
     
     content = {
         "text": [],
-        "fb_video": [],
+        "fb_post": [],
         "image": [],
         "tweet": [],
+        "video": [],
+        "youtube": [],
     }
 
     # text content
-    content['text'] = pq('div.details-content-story').text()
+    content['text'] = restore_unicode(pq('div.tdb-block-inner>p').text())
 
     # images
-    images = pq.find('.article-head-image>.img-wth-credits>img')
-    images += pq.find('.image-and-caption-wrapper>img')
-    images = list(dict.fromkeys(images))
-
+    images = pq.find('div.td_block_wrap>div.tdb-block-inner>a>img.entry-thumb')
+    images += pq.find('div.tdb-block-inner>figure.wp-block-gallery>ul.blocks-gallery-grid>li.blocks-gallery-item>figure>img')
+    images += pq.find('div.tdb-block-inner>figure.wp-block-image>img')
+    images += pq.find('div.wp-block-image>figure.aligncenter>img')
+    images += pq.find('div.wp-block-media-text>figure.wp-block-media-text__media>img')
+    images += pq.find('div.tdb-block-inner>p>img')
     for i in images:
-        if 'src' in i.attrib:
-            #print(i.attrib["src"])
-            content["image"].append(i.attrib["src"])      
-            
-    #fb_vid = pq.find('.h-embed-wrapper>h-iframe') 
-    #for f in fb_vid:
-    #    content["fb_video"].append(f.attrib["src"])  
+            content["image"].append(i.attrib["src"])   
     
-    #twitter videos
+    #videos
+    video = pq.find('div.tdb-block-inner>figure.wp-block-video>video')
+    for v in video:
+        content["video"].append(v.attrib["src"])
         
+    #tweets
     tweets = pq.find('.twitter-tweet>a') 
     for t in tweets:
-        content["tweet"].append(t.attrib["href"])  
+        content["tweet"].append(t.attrib['href'])
         
+    #fb post
+    fb = pq.find('.ose->iframe')
+    for f in fb:
+        content["fb_post"].append(f.attrib['src'])
+        
+    #youtube video
+    yt = pq.find('.wp-block-embed__wrapper>iframe')
+    for y in yt:
+        content["youtube"].append(y.attrib['src'])
         
     return content
-
+        
 def convert_timestamp(item_date_object):
     if isinstance(item_date_object, (date, datetime)):
         return item_date_object.timestamp()
@@ -249,7 +278,7 @@ def convert_timestamp(item_date_object):
 def article_parser(html_text, url, domain, lang, sub_folder):
     
     print("entered article_parser")
-    file = "post.json"
+    file_name = f'{sub_folder}post.json'
     file_name = os.path.join(sub_folder, file)
     if os.path.exists(file_name):
         print("story has already been parsed.See ", file_name)
@@ -355,15 +384,19 @@ def get_all_images(post,sub_folder):
                 filename = url.split("/")[-1]
                 
                 r = requests.get(url)
-                image = Image.open(BytesIO(r.content)) 
-                if len(filename.split(".")) == 1:
+                try:
+                    image = Image.open(BytesIO(r.content)) 
+                    if len(filename.split(".")) == 1:
                         filename = f"{filename}.{image.format.lower()}"
-                if image.mode in ("RGBA", "P"): 
-                    image = image.convert("RGB")
-                imgfile=f'{sub_folder}/{filename}'
-                image.save(f'{sub_folder}/{filename}')
-                filename_dict.update({doc["doc_id"]: filename})
+                    if image.mode in ("RGBA", "P"): 
+                        image = image.convert("RGB")
+                    imgfile=f'{sub_folder}/{filename}'
+                    image.save(f'{sub_folder}/{filename}')
+                    filename_dict.update({doc["doc_id"]: filename})
+                except:
+                    print("couldn't identify image file")
                 
+    print(filename_dict)
     return filename_dict
 
 
@@ -403,10 +436,7 @@ def data_uploader(post, media_dict, html_text, sub_folder):
                 continue
             filename = media_dict.get(doc["doc_id"])
             if (filename != None):
-                print(filename)
                 s3_filename = str(uuid4())
-                print('entering aws write')
-                print(s3_filename)
                 res = s3.upload_file(
                             f'{sub_folder}/{filename}',
                             BUCKET,
@@ -419,7 +449,6 @@ def data_uploader(post, media_dict, html_text, sub_folder):
             
 
             else:
-                print('filename exists')
                 continue
     
   
@@ -431,69 +460,45 @@ def data_uploader(post, media_dict, html_text, sub_folder):
                           BUCKET,
                           s3_html_name,
                           ExtraArgs={"ContentType": "unk_content_type"},
-                        )
-                        
-def main():
-    print('TLI scraper initiated')
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
-    
-    tli_sites = ["thelogicalindian.com"]
+                        )  
 
-    for tli_site in tli_sites:
+def main():
+    print('Newschecker scraper initiated')
+    
+    newschecker_sites = ["newschecker.in","newschecker.in/hi","newschecker.in/bn",
+    "newschecker.in/gu","newschecker.in/mr","newschecker.in/pa","newschecker.in/ta","newschecker.in/ml"]
+
+    
+    
+    for newschecker_site in newschecker_sites:
+        print(newschecker_site)
         
-        print(tli_site)
-        site = TLI_DICT[tli_site]
+        site = newschecker_sites_dict[newschecker_site]
         print(site.get("domain"))
         lang_folder = f'{FILE_PATH}{site.get("langs")}/'
-        print(lang_folder)
+        if not os.path.exists(lang_folder):
+            os.mkdir(lang_folder)
         links = crawler(site.get("url"),CRAWL_PAGE_COUNT,lang_folder)
-        
-        #print(links)
-        # JSON file
-        #f = open ('url_list.json', "r")
+
+        print(links)
+
     
-        # Reading from file
-        #links = json.loads(f.read())
-        
         for link in links:
-            print(link)
-            sub_folder = link.split("/")[-1] 
+            sub_folder = f'{lang_folder}{link.split("/")[-1].split(".")[0]}'
             print(sub_folder)
-            
+        
             if not os.path.exists(sub_folder):
                 os.mkdir(sub_folder)
             html_text = article_downloader(link, sub_folder)
-            post = article_parser(html_text, link, domain, lang, sub_folder)
+            post = article_parser(html_text, link, site.get("domain"), site.get("langs"), sub_folder)
             media_dict = media_downloader(post, sub_folder)
             data_uploader(post, media_dict, html_text, sub_folder)
             if (DEBUG==0):
                 shutil.rmtree  
-                
-        if (DEBUG==0):
-                os.remove(f'url_list.json')
-                
-=======
-    
-    links = crawler(crawl_url)
-    #print(links)
-    
-    for link in links:
-        sub_folder = link.split("/")[-1] 
-        print(sub_folder)
-        
-        if not os.path.exists(sub_folder):
-            os.mkdir(sub_folder)
-        html_text = article_downloader(link, sub_folder)
-        post = article_parser(html_text, link, domain, lang, sub_folder)
-        media_dict = media_downloader(post, sub_folder)
-        data_uploader(post, media_dict, html_text, sub_folder)
-        if (DEBUG==0):
-            shutil.rmtree  
             
-    if (DEBUG==0):
-            os.remove(f'url_list.json')
+        if (DEBUG==0):
+            os.remove(f'{lang_folder}url_list.json')
             
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
 if __name__ == "__main__":
-    main()                           
-   
+    main()
+

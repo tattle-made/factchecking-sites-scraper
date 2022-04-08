@@ -542,9 +542,9 @@ def main():
     print('boomlive scraper initiated')
 
     boom_sites = [
-    "boomlive.in",
+    #"boomlive.in",
     "hindi.boomlive.in",
-    "bangla.boomlive.in"
+    #"bangla.boomlive.in"
     ]
 
     # in debug stage test one language at a time. the url_list file is common to all 
