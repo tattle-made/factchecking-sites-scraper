@@ -49,11 +49,16 @@ FILE_PATH = "tmp/youturn/"
 
 
 YOUTURN_SITES_DICT = {
-    "youturn.in": {
+    "en.youturn.in": {
         "url":"https://en.youturn.in/category/factcheck",
         "domain":"en.youturn.in",
         "langs":"english",
-
+        }
+    "youturn.in": {
+        "url":"https://youturn.in/category/factcheck",
+        "domain":"youturn.in",
+        "langs":"tamil",
+        }
     }
 }
 
@@ -437,7 +442,7 @@ def data_uploader(post, media_dict, html_text, sub_folder):
 def main():
     print('Youturn scraper initiated')
     
-    youturn_sites = ["youturn.in"]
+    youturn_sites = ["en.youturn.in","youturn.in"]
 
     for youturn_site in youturn_sites:
         print(youturn_site)
