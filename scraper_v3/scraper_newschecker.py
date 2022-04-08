@@ -1,5 +1,5 @@
-## Scraper Functions for Boomlive
-## 16 Feb 2021
+## Scraper Functions for Newschecker
+## 7 Apr 2022
 
 from time import time, sleep
 from datetime import date, datetime
@@ -14,6 +14,7 @@ from tqdm import tqdm
 from numpy.random import randint
 from uuid import uuid4
 
+
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
@@ -23,7 +24,6 @@ import requests
 import boto3
 
 import os
-import shutil
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -37,25 +37,59 @@ COLL_NAME = os.environ["COLL_NAME"]
 BUCKET = os.environ["BUCKET"]
 REGION_NAME = os.environ["REGION_NAME"]
 
-DEBUG = 0
+DEBUG = 1
 
-CRAWL_PAGE_COUNT = 2
+CRAWL_PAGE_COUNT = 3
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
     }
 
-FILE_PATH = "tmp/youturn/"
+FILE_PATH = "tmp/newschecker/"
 
-
-YOUTURN_SITES_DICT = {
-    "youturn.in": {
-        "url":"https://en.youturn.in/category/factcheck",
-        "domain":"en.youturn.in",
-        "langs":"english",
-
-    }
+newschecker_sites_dict = {
+    "newschecker.in": {
+        "url": "https://newschecker.in/fact-check",
+        "langs": "english",
+        "domain": "newschecker.in",
+    },
+    "newschecker.in/hi": {
+        "url": "https://newschecker.in/hi/fact-check-hi",
+        "langs": "hindi",
+        "domain": "newschecker.in/hi",
+    },
+    "newschecker.in/bn": {
+        "url": "https://newschecker.in/bn/fact-checks",
+        "langs": "bengali",
+        "domain": "newschecker.in/bn",
+    },
+    "newschecker.in/gu": {
+        "url": "https://newschecker.in/gu/fact-checks-gu",
+        "langs": "gujarati",
+        "domain": "newschecker.in/gu",
+    },
+    "newschecker.in/mr": {
+        "url": "https://newschecker.in/mr/fact-check-mr",
+        "langs": "marathi",
+        "domain": "newschecker.in/mr",
+    },
+    "newschecker.in/pa": {
+        "url": "https://newschecker.in/pa/fact-check-pa",
+        "langs": "punjabi",
+        "domain": "newschecker.in/pa",
+    },
+    "newschecker.in/ta": {
+        "url": "https://newschecker.in/ta/fact-check-ta",
+        "langs": "tamil",
+        "domain": "newschecker.in/ta",
+    },
+    "newschecker.in/ml": {
+        "url": "https://newschecker.in/ml/fact-check-ml",
+        "langs": "malayalam",
+        "domain": "newschecker.in/ml",
+    },
 }
+
 
 
 def get_collection(MONGOURL, DB_NAME, COLL_NAME):
@@ -64,7 +98,7 @@ def get_collection(MONGOURL, DB_NAME, COLL_NAME):
     collection = db[COLL_NAME]
 
     return collection
-    
+
 def aws_connection():
 
     access_id = os.environ["ACCESS_ID"]
@@ -98,8 +132,7 @@ def restore_unicode(mangled):
     return mangled.encode('latin1','ignore').decode('utf8', 'replace')
 
 
-
-def crawler(crawl_url, page_count, lang_folder) -> list:
+def crawler(crawl_url, CRAWL_PAGE_COUNT, lang_folder) -> list:
 
     print("entered crawler")
 
@@ -123,7 +156,10 @@ def crawler(crawl_url, page_count, lang_folder) -> list:
                 print("No HTML on Link")
                 continue
 
-            permalinks = PyQuery(tree).find(".post-item>a")
+            pq = PyQuery(tree)
+            permalinks = pq.find("div.tdb_module_cat_grid_1>div.td-module-container>div.td-image-container>div.td-module-thumb>a")
+            permalinks += pq.find("div.tdb_module_cat_grid_2>div.td-module-container>div.td-image-container>div.td-module-thumb>a")
+            permalinks += pq.find("div.tdb_module_loop>div.td-module-container>div.td-image-container>div.td-module-thumb>a")   
 
             for pl in permalinks:
                 link = pl.attrib['href']
@@ -142,8 +178,6 @@ def crawler(crawl_url, page_count, lang_folder) -> list:
             json.dump(url_list,f)  
             
     return url_list
-
-
 
 
 
@@ -171,14 +205,16 @@ def article_downloader(url, sub_folder):
 
 def get_article_info(pq):
 
-    headline = pq("h1.post-title").text()
+    headline = pq("h1.tdb-title-text").text()
     print(headline)
-    date = pq("div.post-meta>span.date").text().split(" ")[0:3]
-    datestr = ' '.join(map(str, date))
-    print(datestr)
+    datestr = pq("div.tdb-block-inner>time").attr['datetime']
     datestr = parse(datestr).astimezone(pytz.timezone('Asia/Calcutta')).strftime("%B %d, %Y")
-    author_name = "NA"
-    author_link = "NA"
+    print(datestr)
+    author_name = pq("div.tdb-author-name-wrap>a.tdb-author-name").text()
+    print(author_name)
+    author_link = pq("div.tdb-block-inner>a.tdb-author-photo")
+    author_link = author_link.attr['href']
+    print(author_link)
     article_info = {
         "headline": restore_unicode(headline),
         "author": author_name,
@@ -188,8 +224,6 @@ def get_article_info(pq):
     print(article_info)
     
     return article_info
-
-
 
 def get_article_content(pq):
     
@@ -203,49 +237,40 @@ def get_article_content(pq):
     }
 
     # text content
-    claim = pq('div.entry-content>div>p').text()
-    explanation = pq('div.entry-content>p').text()
-    content['text'] = ". ".join([claim, explanation])
+    content['text'] = restore_unicode(pq('div.tdb-block-inner>p').text())
 
     # images
-    images = pq.find('div.featured-area-inner>figure.single-featured-image>img')
-    images += pq.find('div.entry-content>p>img')
-    images += pq.find('div.entry-content>div>p>img')
-    images += pq.find('div>img')
-    images = list(dict.fromkeys(images))
+    images = pq.find('div.td_block_wrap>div.tdb-block-inner>a>img.entry-thumb')
+    images += pq.find('div.tdb-block-inner>figure.wp-block-gallery>ul.blocks-gallery-grid>li.blocks-gallery-item>figure>img')
+    images += pq.find('div.tdb-block-inner>figure.wp-block-image>img')
+    images += pq.find('div.wp-block-image>figure.aligncenter>img')
+    images += pq.find('div.wp-block-media-text>figure.wp-block-media-text__media>img')
+    images += pq.find('div.tdb-block-inner>p>img')
     for i in images:
-        if not 'gif' in str(i.attrib["src"]):
             content["image"].append(i.attrib["src"])   
     
-    # facebook posts
-    fb_post = pq.find('div.entry-content>div>p>a') 
-    fb_post += pq.find('div.entry-content>p>a')
-    for f in fb_post:
-        if "facebook" in str(f.attrib["href"]):
-            content["fb_post"].append(f.attrib["href"])
-    
-    # tweets
-    tweet = pq.find('div.entry-content>p>a')
-    tweet += pq.find('div.entry-content>div>p>a')
-    for t in tweet:
-        if "twitter" in str(t.attrib["href"]):
-            content["tweet"].append(t.attrib["href"])  
-    
     #videos
-    video = pq.find('div.entry-content>p>iframe') 
+    video = pq.find('div.tdb-block-inner>figure.wp-block-video>video')
     for v in video:
-        content["video"].append(v.attrib["src"])  
-    
-    # youtube videos
-    youtube = pq.find('div.entry-content>div>p>a')
-    if "yout" in str(youtube.attr["href"]):
-        content["youtube"].append(youtube.attr["href"])
-
-
+        content["video"].append(v.attrib["src"])
         
+    #tweets
+    tweets = pq.find('.twitter-tweet>a') 
+    for t in tweets:
+        content["tweet"].append(t.attrib['href'])
+        
+    #fb post
+    fb = pq.find('.ose->iframe')
+    for f in fb:
+        content["fb_post"].append(f.attrib['src'])
+        
+    #youtube video
+    yt = pq.find('.wp-block-embed__wrapper>iframe')
+    for y in yt:
+        content["youtube"].append(y.attrib['src'])
         
     return content
-
+        
 def convert_timestamp(item_date_object):
     if isinstance(item_date_object, (date, datetime)):
         return item_date_object.timestamp()
@@ -359,14 +384,17 @@ def get_all_images(post,sub_folder):
                 filename = url.split("/")[-1]
                 
                 r = requests.get(url)
-                image = Image.open(BytesIO(r.content)) 
-                if len(filename.split(".")) == 1:
+                try:
+                    image = Image.open(BytesIO(r.content)) 
+                    if len(filename.split(".")) == 1:
                         filename = f"{filename}.{image.format.lower()}"
-                if image.mode in ("RGBA", "P"): 
-                    image = image.convert("RGB")
-                imgfile=f'{sub_folder}/{filename}'
-                image.save(f'{sub_folder}/{filename}')
-                filename_dict.update({doc["doc_id"]: filename})
+                    if image.mode in ("RGBA", "P"): 
+                        image = image.convert("RGB")
+                    imgfile=f'{sub_folder}/{filename}'
+                    image.save(f'{sub_folder}/{filename}')
+                    filename_dict.update({doc["doc_id"]: filename})
+                except:
+                    print("couldn't identify image file")
                 
     print(filename_dict)
     return filename_dict
@@ -432,39 +460,45 @@ def data_uploader(post, media_dict, html_text, sub_folder):
                           BUCKET,
                           s3_html_name,
                           ExtraArgs={"ContentType": "unk_content_type"},
-                        )
+                        )  
 
 def main():
-    print('Youturn scraper initiated')
+    print('Newschecker scraper initiated')
     
-    youturn_sites = ["youturn.in"]
+    newschecker_sites = ["newschecker.in","newschecker.in/hi","newschecker.in/bn",
+    "newschecker.in/gu","newschecker.in/mr","newschecker.in/pa","newschecker.in/ta","newschecker.in/ml"]
 
-    for youturn_site in youturn_sites:
-        print(youturn_site)
-
-        site = YOUTURN_SITES_DICT[youturn_site]
+    
+    
+    for newschecker_site in newschecker_sites:
+        print(newschecker_site)
+        
+        site = newschecker_sites_dict[newschecker_site]
         print(site.get("domain"))
         lang_folder = f'{FILE_PATH}{site.get("langs")}/'
+        if not os.path.exists(lang_folder):
+            os.mkdir(lang_folder)
         links = crawler(site.get("url"),CRAWL_PAGE_COUNT,lang_folder)
-        
+
         print(links)
 
-        
+    
         for link in links:
-            sub_folder = f'{lang_folder}{link.split("/")[-1]}/'
+            sub_folder = f'{lang_folder}{link.split("/")[-1].split(".")[0]}'
             print(sub_folder)
-            
+        
             if not os.path.exists(sub_folder):
                 os.mkdir(sub_folder)
             html_text = article_downloader(link, sub_folder)
-            post = article_parser(html_text, link, domain, lang, sub_folder)
+            post = article_parser(html_text, link, site.get("domain"), site.get("langs"), sub_folder)
             media_dict = media_downloader(post, sub_folder)
             data_uploader(post, media_dict, html_text, sub_folder)
             if (DEBUG==0):
                 shutil.rmtree  
-                
+            
         if (DEBUG==0):
             os.remove(f'{lang_folder}url_list.json')
-                
+            
 if __name__ == "__main__":
     main()
+

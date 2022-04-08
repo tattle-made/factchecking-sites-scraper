@@ -1,5 +1,5 @@
-## Scraper Functions for Boomlive
-## 16 Feb 2021
+## Scraper Functions for The Logical Indian
+## 7 April 2022
 
 from time import time, sleep
 from datetime import date, datetime
@@ -39,7 +39,7 @@ REGION_NAME = os.environ["REGION_NAME"]
 
 DEBUG = 0
 
-CRAWL_PAGE_COUNT =2
+CRAWL_PAGE_COUNT =1
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
@@ -47,10 +47,14 @@ headers = {
 
 FILE_PATH = "tmp/thelogicalindian/"
 
+TLI_DICT = {
+    "thelogicalindian.com":{
+        "url":"https://thelogicalindian.com/fact-check",
+        "domain":"thelogicalindian.com",
+        "langs": "english",
+        },
+}
 
-crawl_url = "https://thelogicalindian.com/fact-check"
-domain="thelogicalindian.com"
-lang = "english"
 
 def get_collection(MONGOURL, DB_NAME, COLL_NAME):
     cli = MongoClient(MONGOURL)
@@ -91,11 +95,15 @@ def get_tree(url):
 def restore_unicode(mangled):
     return mangled.encode('latin1','ignore').decode('utf8', 'replace')
     
-def crawler(crawl_url): 
-
+def crawler(crawl_url, page_count, lang_folder) -> list:  
+    """
+    get story links based on url and page range
+    extract all URLs in pages, discard URLs already in collection
+    """
     print("entered crawler")
 
-    file_name = 'url_list.json'
+    file_name = f'{lang_folder}url_list.json'
+    print(file_name)
     if os.path.exists(file_name):
         print("site already been crawled. See ", file_name)
         with open(file_name, "r") as f:
@@ -374,7 +382,10 @@ def data_uploader(post, media_dict, html_text, sub_folder):
                 continue
             filename = media_dict.get(doc["doc_id"])
             if (filename != None):
+                print(filename)
                 s3_filename = str(uuid4())
+                print('entering aws write')
+                print(s3_filename)
                 res = s3.upload_file(
                             f'{sub_folder}/{filename}',
                             BUCKET,
@@ -387,6 +398,7 @@ def data_uploader(post, media_dict, html_text, sub_folder):
             
 
             else:
+                print('filename exists')
                 continue
     
   
@@ -403,25 +415,41 @@ def data_uploader(post, media_dict, html_text, sub_folder):
 def main():
     print('TLI scraper initiated')
     
-    links = crawler(crawl_url)
-    #print(links)
-    
-    for link in links:
-        sub_folder = link.split("/")[-1] 
-        print(sub_folder)
+    tli_sites = ["thelogicalindian.com"]
+
+    for tli_site in tli_sites:
         
-        if not os.path.exists(sub_folder):
-            os.mkdir(sub_folder)
-        html_text = article_downloader(link, sub_folder)
-        post = article_parser(html_text, link, domain, lang, sub_folder)
-        media_dict = media_downloader(post, sub_folder)
-        data_uploader(post, media_dict, html_text, sub_folder)
+        print(tli_site)
+        site = TLI_DICT[tli_site]
+        print(site.get("domain"))
+        lang_folder = f'{FILE_PATH}{site.get("langs")}/'
+        print(lang_folder)
+        links = crawler(site.get("url"),CRAWL_PAGE_COUNT,lang_folder)
+        
+        #print(links)
+        # JSON file
+        #f = open ('url_list.json', "r")
+    
+        # Reading from file
+        #links = json.loads(f.read())
+        
+        for link in links:
+            print(link)
+            sub_folder = link.split("/")[-1] 
+            print(sub_folder)
+            
+            if not os.path.exists(sub_folder):
+                os.mkdir(sub_folder)
+            html_text = article_downloader(link, sub_folder)
+            post = article_parser(html_text, link, domain, lang, sub_folder)
+            media_dict = media_downloader(post, sub_folder)
+            data_uploader(post, media_dict, html_text, sub_folder)
+            if (DEBUG==0):
+                shutil.rmtree  
+                
         if (DEBUG==0):
-            shutil.rmtree  
-            
-    if (DEBUG==0):
-            os.remove(f'url_list.json')
-            
+                os.remove(f'url_list.json')
+                
 if __name__ == "__main__":
     main()                           
    
