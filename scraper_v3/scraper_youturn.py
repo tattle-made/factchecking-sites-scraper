@@ -1,5 +1,5 @@
-## Scraper Functions for Boomlive
-## 16 Feb 2021
+## Scraper Functions for youturn
+## 8 April 2021
 
 from time import time, sleep
 from datetime import date, datetime
@@ -53,14 +53,13 @@ YOUTURN_SITES_DICT = {
         "url":"https://en.youturn.in/category/factcheck",
         "domain":"en.youturn.in",
         "langs":"english",
-        }
+        },
     "youturn.in": {
         "url":"https://youturn.in/category/factcheck",
         "domain":"youturn.in",
         "langs":"tamil",
         }
     }
-}
 
 
 def get_collection(MONGOURL, DB_NAME, COLL_NAME):
@@ -104,16 +103,22 @@ def restore_unicode(mangled):
 
 
 
-def crawler(crawl_url, page_count, lang_folder) -> list:
 
+def crawler(crawl_url, page_count, lang_folder) -> list: 
+    """
+    get story links based on url and page range
+    extract all URLs in pages, discard URLs already in collection
+    """
+    
     print("entered crawler")
 
     file_name = f'{lang_folder}url_list.json'
+   
     if os.path.exists(file_name):
         print("site already been crawled. See ", file_name)
         with open(file_name, "r") as f:
             url_list = json.load(f)
-    
+
     else:
         url_list = []
 
@@ -157,7 +162,7 @@ def article_downloader(url, sub_folder):
     print(url)
 
     file_name = f'{sub_folder}story.html'
-    file_name = os.path.join(sub_folder, file)
+    #file_name = os.path.join(sub_folder, file)
     print(file_name)  
 
     if os.path.exists(file_name):
@@ -259,7 +264,7 @@ def article_parser(html_text, url, domain, lang, sub_folder):
     
     print("entered article_parser")
     file_name = f'{sub_folder}post.json'
-    file_name = os.path.join(sub_folder, file)
+    #file_name = os.path.join(sub_folder, file)
     if os.path.exists(file_name):
         print("story has already been parsed.See ", file_name)
         with open(file_name, "r") as f:
@@ -412,6 +417,7 @@ def data_uploader(post, media_dict, html_text, sub_folder):
                 print("Skipping upload. Doc has an existing s3_url:",doc["s3URL"])
                 continue
             filename = media_dict.get(doc["doc_id"])
+            print(filename)
             if (filename != None):
                 s3_filename = str(uuid4())
                 res = s3.upload_file(
@@ -423,7 +429,6 @@ def data_uploader(post, media_dict, html_text, sub_folder):
                 s3_url = f"https://{BUCKET}.s3.{REGION_NAME}.amazonaws.com/{s3_filename}" 
                 doc["s3URL"] = s3_url
                 
-            
 
             else:
                 continue
@@ -432,8 +437,8 @@ def data_uploader(post, media_dict, html_text, sub_folder):
     coll.insert_one(post)
 
     s3_html_name = post["postURL"]
-    file = "file.html"
-    res = s3.upload_file( os.path.join(sub_folder, file),
+    #file = "file.html"
+    res = s3.upload_file( f'{sub_folder}story.html',
                           BUCKET,
                           s3_html_name,
                           ExtraArgs={"ContentType": "unk_content_type"},
@@ -462,7 +467,7 @@ def main():
             if not os.path.exists(sub_folder):
                 os.mkdir(sub_folder)
             html_text = article_downloader(link, sub_folder)
-            post = article_parser(html_text, link, domain, lang, sub_folder)
+            post = article_parser(html_text, link,site.get("domain"),site.get("lang"),sub_folder)
             media_dict = media_downloader(post, sub_folder)
             data_uploader(post, media_dict, html_text, sub_folder)
             if (DEBUG==0):

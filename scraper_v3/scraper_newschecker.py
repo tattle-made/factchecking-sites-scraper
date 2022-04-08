@@ -39,7 +39,7 @@ REGION_NAME = os.environ["REGION_NAME"]
 
 DEBUG = 1
 
-CRAWL_PAGE_COUNT = 3
+CRAWL_PAGE_COUNT = 1 #3
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
@@ -186,7 +186,7 @@ def article_downloader(url, sub_folder):
     print(url)
 
     file_name = f'{sub_folder}story.html'
-    file_name = os.path.join(sub_folder, file)
+    #file_name = os.path.join(sub_folder, file)
     print(file_name)  
 
     if os.path.exists(file_name):
@@ -279,7 +279,7 @@ def article_parser(html_text, url, domain, lang, sub_folder):
     
     print("entered article_parser")
     file_name = f'{sub_folder}post.json'
-    file_name = os.path.join(sub_folder, file)
+    #file_name = os.path.join(sub_folder, file)
     if os.path.exists(file_name):
         print("story has already been parsed.See ", file_name)
         with open(file_name, "r") as f:
@@ -455,8 +455,8 @@ def data_uploader(post, media_dict, html_text, sub_folder):
     coll.insert_one(post)
 
     s3_html_name = post["postURL"]
-    file = "file.html"
-    res = s3.upload_file( os.path.join(sub_folder, file),
+    #file = "file.html"
+    res = s3.upload_file( f'{sub_folder}story.html',
                           BUCKET,
                           s3_html_name,
                           ExtraArgs={"ContentType": "unk_content_type"},

@@ -1,10 +1,5 @@
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
 ## Scraper Functions for The Logical Indian
 ## 7 April 2022
-=======
-## Scraper Functions for Boomlive
-## 16 Feb 2021
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
 
 from time import time, sleep
 from datetime import date, datetime
@@ -44,11 +39,7 @@ REGION_NAME = os.environ["REGION_NAME"]
 
 DEBUG = 0
 
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
-CRAWL_PAGE_COUNT =1
-=======
-CRAWL_PAGE_COUNT =2
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
+CRAWL_PAGE_COUNT = 1#149
 headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
         "Content-Type": "text/html",
@@ -56,7 +47,6 @@ headers = {
 
 FILE_PATH = "tmp/thelogicalindian/"
 
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
 TLI_DICT = {
     "thelogicalindian.com":{
         "url":"https://thelogicalindian.com/fact-check",
@@ -65,12 +55,6 @@ TLI_DICT = {
         },
 }
 
-=======
-
-crawl_url = "https://thelogicalindian.com/fact-check"
-domain="thelogicalindian.com"
-lang = "english"
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
 
 def get_collection(MONGOURL, DB_NAME, COLL_NAME):
     cli = MongoClient(MONGOURL)
@@ -111,16 +95,11 @@ def get_tree(url):
 def restore_unicode(mangled):
     return mangled.encode('latin1','ignore').decode('utf8', 'replace')
     
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
 def crawler(crawl_url, page_count, lang_folder) -> list:  
     """
     get story links based on url and page range
     extract all URLs in pages, discard URLs already in collection
     """
-=======
-def crawler(crawl_url): 
-
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
     print("entered crawler")
 
     file_name = f'{lang_folder}url_list.json'
@@ -167,9 +146,9 @@ def article_downloader(url, sub_folder):
     print("entered downloader")
     print(url)
     
-    #save_path = 'article_one_subfolder'
-    file = "file.html"
-    file_name = os.path.join(sub_folder, file)
+    
+    file_name = f'{sub_folder}story.html'
+    #file_name = os.path.join(sub_folder, file)
     print(file_name)  
 
     if os.path.exists(file_name):
@@ -198,7 +177,7 @@ def get_article_info(pq):
     author_name = pq('h3>a').text().split(':')[1].strip()
     author_name = author_name.rsplit(' ', 1)[0]
     print(author_name)
-    author_link = crawl_url + pq('h3>a').attr['href']
+    author_link = pq('h3>a').attr['href']
     print(author_link)
     article_info = {
         "headline": restore_unicode(headline),
@@ -249,8 +228,8 @@ def convert_timestamp(item_date_object):
 def article_parser(html_text, url, domain, lang, sub_folder):
     
     print("entered article_parser")
-    file = "post.json"
-    file_name = os.path.join(sub_folder, file)
+    file_name = f'{sub_folder}post.json'
+    #file_name = os.path.join(sub_folder, file)
     if os.path.exists(file_name):
         print("story has already been parsed.See ", file_name)
         with open(file_name, "r") as f:
@@ -426,8 +405,8 @@ def data_uploader(post, media_dict, html_text, sub_folder):
     coll.insert_one(post)
 
     s3_html_name = post["postURL"]
-    file = "file.html"
-    res = s3.upload_file( os.path.join(sub_folder, file),
+    #file = "file.html"
+    res = s3.upload_file( f'{sub_folder}story.html',
                           BUCKET,
                           s3_html_name,
                           ExtraArgs={"ContentType": "unk_content_type"},
@@ -435,7 +414,6 @@ def data_uploader(post, media_dict, html_text, sub_folder):
                         
 def main():
     print('TLI scraper initiated')
-<<<<<<< HEAD:scraper_v3/scraper_tli.py
     
     tli_sites = ["thelogicalindian.com"]
 
@@ -447,13 +425,7 @@ def main():
         lang_folder = f'{FILE_PATH}{site.get("langs")}/'
         print(lang_folder)
         links = crawler(site.get("url"),CRAWL_PAGE_COUNT,lang_folder)
-        
-        #print(links)
-        # JSON file
-        #f = open ('url_list.json', "r")
-    
-        # Reading from file
-        #links = json.loads(f.read())
+
         
         for link in links:
             print(link)
@@ -463,37 +435,15 @@ def main():
             if not os.path.exists(sub_folder):
                 os.mkdir(sub_folder)
             html_text = article_downloader(link, sub_folder)
-            post = article_parser(html_text, link, domain, lang, sub_folder)
+            post = article_parser(html_text, link,site.get("domain"),site.get("lang"),sub_folder)
             media_dict = media_downloader(post, sub_folder)
             data_uploader(post, media_dict, html_text, sub_folder)
             if (DEBUG==0):
                 shutil.rmtree  
                 
         if (DEBUG==0):
-                os.remove(f'url_list.json')
+            os.remove(f'{lang_folder}url_list.json')
                 
-=======
-    
-    links = crawler(crawl_url)
-    #print(links)
-    
-    for link in links:
-        sub_folder = link.split("/")[-1] 
-        print(sub_folder)
-        
-        if not os.path.exists(sub_folder):
-            os.mkdir(sub_folder)
-        html_text = article_downloader(link, sub_folder)
-        post = article_parser(html_text, link, domain, lang, sub_folder)
-        media_dict = media_downloader(post, sub_folder)
-        data_uploader(post, media_dict, html_text, sub_folder)
-        if (DEBUG==0):
-            shutil.rmtree  
-            
-    if (DEBUG==0):
-            os.remove(f'url_list.json')
-            
->>>>>>> master:scraper_v3/scraper_thelogicalindian.py
 if __name__ == "__main__":
     main()                           
    
