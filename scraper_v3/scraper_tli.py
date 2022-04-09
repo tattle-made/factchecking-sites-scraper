@@ -168,8 +168,13 @@ def get_article_info(pq):
     headline = pq("h1.article-heading").text()
     print(headline)
     date = pq('h3.date-info>span').text()
-    date=date.split(",")[1]
-    date=date.split(" ")[1:4]
+    import ipdb; ipdb.set_trace()
+
+    if ',' in date:
+        date=date.split(",")[1]
+        date=date.split(" ")[1:4]
+    else:
+        date = date.split(" ")[0:3]
     #print(date)
     datestr = ' '.join(map(str, date))
     print(datestr)
@@ -430,6 +435,11 @@ def main():
         for link in links:
             print(link)
             sub_folder = link.split("/")[-1] 
+            
+            ## accounting for url entries in url_list.json that end in /. Need to investigate if can be resolved at html parsing step
+            if (sub_folder == ""):              
+                sub_folder = link.split("/")[-2] 
+            sub_folder = f'{lang_folder}{sub_folder}/'    
             print(sub_folder)
             
             if not os.path.exists(sub_folder):
