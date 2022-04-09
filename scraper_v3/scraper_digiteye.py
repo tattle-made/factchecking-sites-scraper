@@ -26,6 +26,7 @@ import boto3
 import os
 import shutil
 from dotenv import load_dotenv
+import utils as scraper_v3_utils
 load_dotenv()
 
 ## Decided: For Constants generate config file. Avoid domain specific functions in common config. 
@@ -183,23 +184,10 @@ def crawler(crawl_url, page_count, lang_folder) -> list:
 
 # ============================= ARTICLE DOWNLOADER BEGIN =======================
 def article_downloader(url, sub_folder): 
-    print("entered downloader")
-    print(url)
-    
     # time_millis = int(time() * 1000)
     file_name = f'{sub_folder}story.html'
 
-    if os.path.exists(file_name):
-        print("Article Already Downloaded. Loading from local.")
-        with open(file_name, 'rb') as f:
-            html_text = f.read()
-    else:
-        response = requests.get(url, headers=headers)
-        html_text = response.content
-        with open(file_name, "wb") as f:
-            f.write(html_text)
-    
-    return html_text
+    return article_downloader(url, file_name)
 
     # response = requests.get(url, headers=headers)
 
@@ -566,6 +554,8 @@ def main():
             if not os.path.exists(sub_folder):
                 os.mkdir(sub_folder)
             html_text = article_downloader(link,sub_folder)
+            if not html_text:
+                continue
             post = article_parser(html_text, link,site.get("domain"),site.get("lang"),sub_folder)
             #import ipdb; ipdb.set_trace()
             media_items = media_downloader(post,sub_folder)
