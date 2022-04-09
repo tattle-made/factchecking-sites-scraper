@@ -1,6 +1,7 @@
 ## Scraper Functions for Digiteye
 ## 16 March 2021
 
+import logging
 from time import time, sleep
 from datetime import date, datetime
 from dateutil.parser import parse
@@ -439,7 +440,12 @@ def get_all_images(post,sub_folder):
                     url_split = url.split("uid=")
                     filename = url_split[1]
 
-                r = requests.get(url, headers=headers)
+                try:
+                    r = requests.get(url, headers=headers)
+                except requests.exceptions.ConnectionError as e:
+                    logging.exception(e)
+                    logging.error("Failed to download image %s", url)
+                    continue
                 image = Image.open(BytesIO(r.content)) 
                 if len(filename.split(".")) == 1:
                         # TODO: handle possible filename without extensions

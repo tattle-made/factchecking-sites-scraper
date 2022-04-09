@@ -1,6 +1,8 @@
 ## Scraper Functions for Newsmeter
 ## 25 Feb 2021
 
+import logging
+import shutil
 from time import time, sleep
 from datetime import date, datetime
 from dateutil.parser import parse
@@ -122,6 +124,7 @@ def get_tree(url):
         html = requests.get(url)
     except Exception as e:
         print(f"failed request: {e}")
+        return None
 
     html.encoding = "utf-8"
     tree = fromstring(html.content)
@@ -371,7 +374,12 @@ def get_all_images(post,sub_folder):
             else:
                 filename = url.split("/")[-1]
                 
-                r = requests.get(url)
+                try:
+                    r = requests.get(url)
+                except requests.exceptions.ConnectionError as e:
+                    logging.exception(e)
+                    logging.error("Failed to download image %s", url)
+                    continue
                 try:
                     image = Image.open(BytesIO(r.content)) 
                     if len(filename.split(".")) == 1:
