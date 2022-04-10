@@ -442,7 +442,8 @@ def get_all_images(post,sub_folder):
 
                 try:
                     r = requests.get(url, headers=headers)
-                except requests.exceptions.ConnectionError as e:
+                    assert r.status_code % 100 == 2
+                except (requests.exceptions.ConnectionError, AssertionError) as e:
                     logging.exception(e)
                     logging.error("Failed to download image %s", url)
                     continue
